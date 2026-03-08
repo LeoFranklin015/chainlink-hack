@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo } from "react"
+import { useState, useMemo, useEffect } from "react"
 import Link from "next/link"
 import {
   AreaChart,
@@ -40,6 +40,8 @@ export function AssetDetailView({ asset }: { asset: AssetData }) {
 
   const { address, isConnected } = useAccount()
   const connectMutation = useConnect()
+  const [mounted, setMounted] = useState(false)
+  useEffect(() => setMounted(true), [])
 
   const chartData = useMemo(() => {
     if (liveData.chartData?.length) {
@@ -71,7 +73,7 @@ export function AssetDetailView({ asset }: { asset: AssetData }) {
   }
 
   const handleAction = async () => {
-    if (!isConnected) {
+    if (!(mounted && isConnected)) {
       const jawConnector = config.connectors[0]
       connectMutation.mutate({ connector: jawConnector })
       return
@@ -339,7 +341,7 @@ export function AssetDetailView({ asset }: { asset: AssetData }) {
                   <div className="flex items-center gap-2 flex-shrink-0 px-3 py-1.5 rounded-lg bg-[#171717]">
                     {activeTab === "buy" ? (
                       <>
-                        <div className="w-5 h-5 rounded-full bg-blue-500 flex items-center justify-center text-white text-[10px] font-bold">$</div>
+                        <img src="/usdc.png" alt="USDC" className="w-5 h-5 rounded-full" />
                         <span className="text-sm font-medium text-[#ededed]">USD</span>
                       </>
                     ) : (
@@ -384,7 +386,7 @@ export function AssetDetailView({ asset }: { asset: AssetData }) {
                       </>
                     ) : (
                       <>
-                        <div className="w-5 h-5 rounded-full bg-blue-500 flex items-center justify-center text-white text-[10px] font-bold">$</div>
+                        <img src="/usdc.png" alt="USDC" className="w-5 h-5 rounded-full" />
                         <span className="text-sm font-medium text-[#ededed]">USD</span>
                       </>
                     )}
@@ -421,7 +423,7 @@ export function AssetDetailView({ asset }: { asset: AssetData }) {
                 disabled={isProcessing}
                 className={cn(
                   "w-full py-4 rounded-xl font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2",
-                  !isConnected
+                  !(mounted && isConnected)
                     ? "bg-white text-black hover:bg-white/90"
                     : activeTab === "buy"
                     ? "bg-emerald-500 text-white hover:bg-emerald-600"
@@ -429,7 +431,7 @@ export function AssetDetailView({ asset }: { asset: AssetData }) {
                 )}
               >
                 {isProcessing && <Loader2 className="w-4 h-4 animate-spin" />}
-                {!isConnected
+                {!(mounted && isConnected)
                   ? "Connect Wallet"
                   : activeTab === "buy"
                   ? `Buy ${asset.ticker}`
