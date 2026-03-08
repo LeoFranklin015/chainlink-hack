@@ -27782,6 +27782,7 @@ var XStocksExchangeABI = [
   { inputs: [], name: "crossChainSupply", outputs: [{ internalType: "uint256", name: "", type: "uint256" }], stateMutability: "view", type: "function" },
   { inputs: [], name: "globalSupplyCap", outputs: [{ internalType: "uint256", name: "", type: "uint256" }], stateMutability: "view", type: "function" },
   { inputs: [{ internalType: "uint256", name: "_crossChainSupply", type: "uint256" }], name: "setCrossChainSupply", outputs: [], stateMutability: "nonpayable", type: "function" },
+  { inputs: [{ internalType: "uint256", name: "_crossChainSupply", type: "uint256" }], name: "setCrossChainSupplyFromReport", outputs: [], stateMutability: "nonpayable", type: "function" },
   { anonymous: false, inputs: [{ indexed: true, internalType: "address", name: "holder", type: "address" }, { indexed: false, internalType: "uint256", name: "balance", type: "uint256" }, { indexed: false, internalType: "uint256", name: "totalSupply", type: "uint256" }], name: "HolderFlagged", type: "event" },
   { anonymous: false, inputs: [{ indexed: true, internalType: "address", name: "holder", type: "address" }], name: "HolderUnflagged", type: "event" },
   { anonymous: false, inputs: [{ indexed: false, internalType: "uint256", name: "crossChainSupply", type: "uint256" }, { indexed: false, internalType: "uint256", name: "localSupply", type: "uint256" }], name: "CrossChainSupplyUpdated", type: "event" },
@@ -27804,7 +27805,7 @@ class XStocksExchange {
     });
     const result = this.client.callContract(runtime3, {
       call: encodeCallMsg({ from: zeroAddress, to: this.address, data: callData }),
-      blockNumber: LAST_FINALIZED_BLOCK_NUMBER2
+      blockNumber: LATEST_BLOCK_NUMBER2
     }).result();
     return decodeFunctionResult({
       abi: XStocksExchangeABI,
@@ -27820,7 +27821,7 @@ class XStocksExchange {
     });
     const result = this.client.callContract(runtime3, {
       call: encodeCallMsg({ from: zeroAddress, to: this.address, data: callData }),
-      blockNumber: LAST_FINALIZED_BLOCK_NUMBER2
+      blockNumber: LATEST_BLOCK_NUMBER2
     }).result();
     return decodeFunctionResult({
       abi: XStocksExchangeABI,
@@ -27835,7 +27836,7 @@ class XStocksExchange {
     });
     const result = this.client.callContract(runtime3, {
       call: encodeCallMsg({ from: zeroAddress, to: this.address, data: callData }),
-      blockNumber: LAST_FINALIZED_BLOCK_NUMBER2
+      blockNumber: LATEST_BLOCK_NUMBER2
     }).result();
     return decodeFunctionResult({
       abi: XStocksExchangeABI,
@@ -27846,7 +27847,7 @@ class XStocksExchange {
   writeReportFromSetCrossChainSupply(runtime3, crossChainSupply, gasConfig) {
     const callData = encodeFunctionData({
       abi: XStocksExchangeABI,
-      functionName: "setCrossChainSupply",
+      functionName: "setCrossChainSupplyFromReport",
       args: [crossChainSupply]
     });
     const reportResponse = runtime3.report(prepareReportRequest(callData)).result();

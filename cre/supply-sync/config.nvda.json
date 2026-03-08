@@ -3,20 +3,20 @@
   "chains": [
     {
       "chainSelectorName": "ethereum-testnet-sepolia-base-1",
-      "tokenAddress": "0x902AaC3BFccA522fFaa710C08557c597eC70FC12",
-      "exchangeAddress": "0xCdb4524125f18cB4574D50aBa20896aDD0f48e76",
+      "tokenAddress": "0xE9fDDe38E64771468885c173878B211DA71d1078",
+      "exchangeAddress": "0x06a26BCd49421952c8791cEf860c9824B6b45106",
       "gasLimit": "500000"
     },
     {
       "chainSelectorName": "ethereum-testnet-sepolia-arbitrum-1",
-      "tokenAddress": "0xC74064583AecE6d906c8891bb3CD6cf8400bf08e",
-      "exchangeAddress": "0xA6A43e98c06A21dd6A5618c05D73f34dc305BF21",
+      "tokenAddress": "0xE9fDDe38E64771468885c173878B211DA71d1078",
+      "exchangeAddress": "0xCEA1Ff3051DF8c6AeB1613726E33F9096897d90E",
       "gasLimit": "500000"
     },
     {
       "chainSelectorName": "avalanche-testnet-fuji",
-      "tokenAddress": "0xcfCd2286Fb39D98a50BEF8ee08D50BC4f4c9cE60",
-      "exchangeAddress": "0x7FAEFA4eac0522749E841C34d9E503420468D5Ac",
+      "tokenAddress": "0xE9fDDe38E64771468885c173878B211DA71d1078",
+      "exchangeAddress": "0x6d1ea244c4b6C3d62488b7FDa0955Bdd354D1613",
       "gasLimit": "500000"
     }
   ]

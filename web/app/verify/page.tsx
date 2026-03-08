@@ -15,14 +15,25 @@ import {
   ExternalLink,
   AlertCircle,
   Loader2,
+  LinkIcon,
 } from "lucide-react"
+import { useAccount } from "wagmi"
 import { Navbar } from "@/components/Navbar"
 import { cn } from "@/lib/utils"
+
+type AllowlistResult = {
+  chain: string
+  status: string
+  txHash?: string
+  error?: string
+}
 
 type VerifyState =
   | { status: "idle" }
   | { status: "verifying" }
-  | { status: "success"; nullifier: string; protocolVersion: string }
+  | { status: "verified_worldid"; nullifier: string; protocolVersion: string }
+  | { status: "allowlisting"; nullifier: string; protocolVersion: string }
+  | { status: "success"; nullifier: string; protocolVersion: string; allowlistResults: AllowlistResult[] }
   | { status: "error"; message: string }
 
 export default function VerifyPage() {
@@ -30,6 +41,7 @@ export default function VerifyPage() {
   const [copied, setCopied] = useState(false)
   const [widgetOpen, setWidgetOpen] = useState(false)
   const [rpContext, setRpContext] = useState<RpContext | null>(null)
+  const { address: walletAddress, isConnected } = useAccount()
 
   const appId = process.env.NEXT_PUBLIC_WLD_APP_ID ?? ""
   const rpId = process.env.NEXT_PUBLIC_WLD_RP_ID ?? ""
@@ -86,8 +98,8 @@ export default function VerifyPage() {
     }
   }, [rpId])
 
-  // Step 3: Extract nullifier from the IDKit result
-  const onSuccess = useCallback((result: Record<string, unknown>) => {
+  // Step 3: Extract nullifier and trigger on-chain allowlisting
+  const onSuccess = useCallback(async (result: Record<string, unknown>) => {
     const protocolVersion = (result.protocol_version as string) ?? "unknown"
     const responses = (result.responses as Array<Record<string, unknown>>) ?? []
     const firstResponse = responses[0]
@@ -102,8 +114,39 @@ export default function VerifyPage() {
       }
     }
 
-    setState({ status: "success", nullifier, protocolVersion })
-  }, [])
+    // If wallet is connected, trigger on-chain allowlisting
+    if (walletAddress && nullifier !== "—") {
+      setState({ status: "allowlisting", nullifier, protocolVersion })
+      try {
+        const res = await fetch("/api/allowlist", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ walletAddress, nullifierHash: nullifier }),
+        })
+        const data = await res.json()
+        setState({
+          status: "success",
+          nullifier,
+          protocolVersion,
+          allowlistResults: data.results ?? [],
+        })
+      } catch {
+        setState({
+          status: "success",
+          nullifier,
+          protocolVersion,
+          allowlistResults: [{ chain: "all", status: "error", error: "Failed to reach backend" }],
+        })
+      }
+    } else {
+      setState({
+        status: "success",
+        nullifier,
+        protocolVersion,
+        allowlistResults: [],
+      })
+    }
+  }, [walletAddress])
 
   const handleCopy = () => {
     if (state.status === "success") {
@@ -193,11 +236,23 @@ export default function VerifyPage() {
                     ))}
                   </div>
 
+                  {!isConnected && (
+                    <div className="w-full py-3 rounded-xl bg-[#171717] border border-[#1e1e1e] text-center mb-4">
+                      <p className="text-xs text-amber-400">Connect your wallet first to enable on-chain allowlisting</p>
+                    </div>
+                  )}
+
                   {hasConfig ? (
                     <button
                       type="button"
                       onClick={startVerification}
-                      className="w-full py-4 rounded-xl bg-white text-black font-semibold text-sm hover:bg-white/90 transition-colors flex items-center justify-center gap-2.5 cursor-pointer"
+                      disabled={!isConnected}
+                      className={cn(
+                        "w-full py-4 rounded-xl font-semibold text-sm flex items-center justify-center gap-2.5 transition-colors",
+                        isConnected
+                          ? "bg-white text-black hover:bg-white/90 cursor-pointer"
+                          : "bg-[#333] text-[#737373] cursor-not-allowed"
+                      )}
                     >
                       <Fingerprint className="w-5 h-5" />
                       Verify with World ID
@@ -229,6 +284,21 @@ export default function VerifyPage() {
                   <Loader2 className="w-10 h-10 text-[#ededed] animate-spin mb-4" />
                   <p className="text-sm text-[#ededed] font-medium">Verifying proof...</p>
                   <p className="text-xs text-[#737373] mt-1">Checking with World ID v4 API</p>
+                </motion.div>
+              )}
+
+              {/* Allowlisting State */}
+              {state.status === "allowlisting" && (
+                <motion.div
+                  key="allowlisting"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="p-8 flex flex-col items-center justify-center min-h-[320px]"
+                >
+                  <Loader2 className="w-10 h-10 text-[#ededed] animate-spin mb-4" />
+                  <p className="text-sm text-[#ededed] font-medium">Allowlisting on-chain...</p>
+                  <p className="text-xs text-[#737373] mt-1">Writing to all 3 chains (Base Sepolia, Arb Sepolia, Avalanche Fuji)</p>
                 </motion.div>
               )}
 
@@ -277,7 +347,7 @@ export default function VerifyPage() {
                     </div>
                   </div>
 
-                  <div className="space-y-3 mb-8">
+                  <div className="space-y-3 mb-6">
                     {[
                       ["Action", action],
                       ["Protocol", `v${state.protocolVersion}`],
@@ -290,6 +360,35 @@ export default function VerifyPage() {
                       </div>
                     ))}
                   </div>
+
+                  {/* On-chain allowlist results */}
+                  {state.allowlistResults.length > 0 && (
+                    <div className="rounded-xl bg-[#171717] border border-[#1e1e1e] p-4 mb-8">
+                      <p className="text-[10px] text-[#737373] uppercase tracking-wider font-medium mb-3 flex items-center gap-1.5">
+                        <LinkIcon className="w-3 h-3" /> On-Chain Allowlist
+                      </p>
+                      <div className="space-y-2">
+                        {state.allowlistResults.map((r) => (
+                          <div key={r.chain} className="flex items-center justify-between text-sm">
+                            <span className="text-[#ededed]">{r.chain}</span>
+                            <span className={cn(
+                              "text-xs font-medium",
+                              r.status === "verified" || r.status === "already_verified"
+                                ? "text-emerald-400"
+                                : r.status === "pending_sync"
+                                ? "text-amber-400"
+                                : "text-red-400"
+                            )}>
+                              {r.status === "verified" ? "Allowlisted" :
+                               r.status === "already_verified" ? "Already Allowlisted" :
+                               r.status === "pending_sync" ? "Syncing via CRE..." :
+                               "Failed"}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
 
                   <div className="flex gap-3">
                     <button
@@ -348,8 +447,9 @@ export default function VerifyPage() {
               action={action}
               rp_context={rpContext}
               preset={deviceLegacy()}
-              handleVerify={handleVerify}
-              onSuccess={onSuccess}
+              allow_legacy_proofs
+              handleVerify={handleVerify as any}
+              onSuccess={onSuccess as any}
             />
           )}
         </div>

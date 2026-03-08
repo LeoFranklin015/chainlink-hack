@@ -5,17 +5,17 @@
   "chains": [
     {
       "chainSelectorName": "ethereum-testnet-sepolia-base-1",
-      "priceReceiverAddress": "0x4C431CcDC0C5E8052688ddfBfCA29eCAb0A13004",
+      "priceReceiverAddress": "0x2d9a6b95Af8BA229B231104586a39579d108B467",
       "gasLimit": "500000"
     },
     {
       "chainSelectorName": "ethereum-testnet-sepolia-arbitrum-1",
-      "priceReceiverAddress": "0x3dD1d100ef7A7F13cA773C37b03c91F3Ee726801",
+      "priceReceiverAddress": "0xD669ad4d787a5382b1C7D55859D9F7E9CE3AED70",
       "gasLimit": "500000"
     },
     {
       "chainSelectorName": "avalanche-testnet-fuji",
-      "priceReceiverAddress": "0x8798658D38eF346f0d8da3a1E1b22906744dA4a8",
+      "priceReceiverAddress": "0xdE3608D9CBDdbaAfF26d87004d5E90562FeF6D28",
       "gasLimit": "500000"
     }
   ]

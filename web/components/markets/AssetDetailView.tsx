@@ -15,10 +15,19 @@ import { ChevronDown, ArrowDown, HelpCircle, Loader2 } from "lucide-react"
 import type { AssetData } from "@/lib/assets"
 import { useAssetDetail } from "@/hooks/useAssetDetail"
 import { cn, getStockLogoUrl } from "@/lib/utils"
-import { useAccount } from "wagmi"
+import { useAccount, useReadContract, useWriteContract, usePublicClient } from "wagmi"
 import { useConnect } from "@jaw.id/wagmi"
 import { config } from "@/config/wagmi"
 import { toast } from "sonner"
+import { parseUnits, formatUnits } from "viem"
+import {
+  USDC_ADDRESS,
+  EXCHANGE_ADDRESS,
+  TOKEN_ADDRESSES,
+  ERC20_ABI,
+  EXCHANGE_ABI,
+  USDC_DECIMALS,
+} from "@/lib/contracts"
 
 const CHART_RANGES = [
   { key: "1D", label: "1D" },
@@ -41,7 +50,49 @@ export function AssetDetailView({ asset }: { asset: AssetData }) {
   const { address, isConnected } = useAccount()
   const connectMutation = useConnect()
   const [mounted, setMounted] = useState(false)
+  const [txStep, setTxStep] = useState<"idle" | "approving" | "trading">("idle")
   useEffect(() => setMounted(true), [])
+
+  const tokenAddress = TOKEN_ADDRESSES[asset.ticker]
+
+  // Read USDC balance
+  const { data: usdcBalance } = useReadContract({
+    address: USDC_ADDRESS,
+    abi: ERC20_ABI,
+    functionName: "balanceOf",
+    args: address ? [address] : undefined,
+    query: { enabled: !!address },
+  })
+
+  // Read USDC allowance
+  const { data: usdcAllowance, refetch: refetchAllowance } = useReadContract({
+    address: USDC_ADDRESS,
+    abi: ERC20_ABI,
+    functionName: "allowance",
+    args: address ? [address, EXCHANGE_ADDRESS] : undefined,
+    query: { enabled: !!address },
+  })
+
+  // Read token balance (for sell)
+  const { data: tokenBalance } = useReadContract({
+    address: tokenAddress,
+    abi: ERC20_ABI,
+    functionName: "balanceOf",
+    args: address ? [address] : undefined,
+    query: { enabled: !!address && !!tokenAddress },
+  })
+
+  // Read verification status
+  const { data: isVerified } = useReadContract({
+    address: EXCHANGE_ADDRESS,
+    abi: EXCHANGE_ABI,
+    functionName: "verifiedUsers",
+    args: address ? [address] : undefined,
+    query: { enabled: !!address },
+  })
+
+  const { writeContractAsync } = useWriteContract()
+  const publicClient = usePublicClient()
 
   const chartData = useMemo(() => {
     if (liveData.chartData?.length) {
@@ -51,6 +102,14 @@ export function AssetDetailView({ asset }: { asset: AssetData }) {
   }, [liveData.chartData])
 
   const positive = liveData.change24h >= 0
+
+  const formattedUsdcBalance = usdcBalance
+    ? parseFloat(formatUnits(usdcBalance as bigint, USDC_DECIMALS)).toFixed(2)
+    : "0.00"
+
+  const formattedTokenBalance = tokenBalance
+    ? parseFloat(formatUnits(tokenBalance as bigint, 18)).toFixed(6)
+    : "0.000000"
 
   const handlePayChange = (val: string) => {
     setPayAmount(val)
@@ -79,25 +138,124 @@ export function AssetDetailView({ asset }: { asset: AssetData }) {
       return
     }
 
+    if (!tokenAddress) {
+      toast.error("Token not supported for trading")
+      return
+    }
+
+    if (!isVerified) {
+      toast.error("Please verify your identity first", {
+        action: { label: "Verify", onClick: () => window.location.href = "/verify" },
+      })
+      return
+    }
+
     const amount = parseFloat(payAmount)
     if (!amount || amount <= 0) {
       toast.error("Please enter a valid amount")
       return
     }
 
+    const usdcAmount = parseUnits(amount.toString(), USDC_DECIMALS)
+
     setIsProcessing(true)
     try {
-      // Simulate order placement
-      await new Promise((resolve) => setTimeout(resolve, 1500))
-      toast.success(
-        `${activeTab === "buy" ? "Bought" : "Sold"} ${receiveAmount} ${asset.ticker} for $${payAmount}`
-      )
+      const MAX_UINT256 = BigInt("0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff")
+
+      if (activeTab === "buy") {
+        // Check USDC balance
+        if (usdcBalance && (usdcBalance as bigint) < usdcAmount) {
+          toast.error(`Insufficient USDC. Balance: $${formattedUsdcBalance}`)
+          return
+        }
+
+        // Step 1: Approve USDC if needed (use max approval so future buys don't need it)
+        const currentAllowance = (usdcAllowance as bigint) ?? BigInt(0)
+        if (currentAllowance < usdcAmount) {
+          setTxStep("approving")
+          toast.info("Approving USDC for exchange...")
+          const approveTxHash = await writeContractAsync({
+            address: USDC_ADDRESS,
+            abi: ERC20_ABI,
+            functionName: "approve",
+            args: [EXCHANGE_ADDRESS, MAX_UINT256],
+          })
+          // Wait for the approve tx to be mined before proceeding
+          if (publicClient) {
+            toast.info("Waiting for approval confirmation...")
+            await publicClient.waitForTransactionReceipt({ hash: approveTxHash })
+          }
+          toast.success("USDC approved!")
+          await refetchAllowance()
+        }
+
+        // Step 2: Buy
+        setTxStep("trading")
+        toast.info(`Buying ${asset.ticker}...`)
+        const buyTx = await writeContractAsync({
+          address: EXCHANGE_ADDRESS,
+          abi: EXCHANGE_ABI,
+          functionName: "buy",
+          args: [tokenAddress, usdcAmount],
+        })
+        toast.success(`Bought ${receiveAmount} ${asset.ticker} for $${payAmount}`)
+      } else {
+        // Sell: user pays tokens, gets USDC
+        // Step 1: Approve token to exchange if needed
+        const tokenAllowanceResult = tokenAddress && address
+          ? await publicClient?.readContract({
+              address: tokenAddress,
+              abi: ERC20_ABI,
+              functionName: "allowance",
+              args: [address, EXCHANGE_ADDRESS],
+            })
+          : BigInt(0)
+        const currentTokenAllowance = (tokenAllowanceResult as bigint) ?? BigInt(0)
+
+        // For sell, usdcAmount is the USDC value; we need to approve the token amount
+        const tokenAmountToSell = parseUnits(receiveAmount || "0", 18)
+        if (currentTokenAllowance < tokenAmountToSell) {
+          setTxStep("approving")
+          toast.info(`Approving ${asset.ticker} for exchange...`)
+          const approveTxHash = await writeContractAsync({
+            address: tokenAddress,
+            abi: ERC20_ABI,
+            functionName: "approve",
+            args: [EXCHANGE_ADDRESS, MAX_UINT256],
+          })
+          if (publicClient) {
+            toast.info("Waiting for approval confirmation...")
+            await publicClient.waitForTransactionReceipt({ hash: approveTxHash })
+          }
+          toast.success(`${asset.ticker} approved!`)
+        }
+
+        // Step 2: Sell
+        setTxStep("trading")
+        toast.info(`Selling ${asset.ticker}...`)
+        const sellTx = await writeContractAsync({
+          address: EXCHANGE_ADDRESS,
+          abi: EXCHANGE_ABI,
+          functionName: "sell",
+          args: [tokenAddress, usdcAmount],
+        })
+        toast.success(`Sold ${receiveAmount} ${asset.ticker} for $${payAmount}`)
+      }
+
       setPayAmount("")
       setReceiveAmount("")
-    } catch (err) {
-      toast.error(`Trade failed: ${err instanceof Error ? err.message : String(err)}`)
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err)
+      if (message.includes("User rejected") || message.includes("denied")) {
+        toast.error("Transaction cancelled")
+      } else if (message.includes("Not verified")) {
+        toast.error("Please verify your identity first")
+      } else {
+        toast.error(`Trade failed: ${message.slice(0, 100)}`)
+      }
     } finally {
       setIsProcessing(false)
+      setTxStep("idle")
     }
   }
 
@@ -394,6 +552,22 @@ export function AssetDetailView({ asset }: { asset: AssetData }) {
                 </div>
               </div>
 
+              {/* Balance */}
+              {mounted && isConnected && (
+                <div className="px-3 py-2 rounded-lg bg-[#171717]/60 border border-[#1e1e1e]">
+                  <div className="flex justify-between text-xs">
+                    <span className="text-[#737373]">
+                      {activeTab === "buy" ? "USDC Balance" : `${asset.ticker} Balance`}
+                    </span>
+                    <span className="text-[#ededed] tabular-nums font-medium">
+                      {activeTab === "buy"
+                        ? `$${formattedUsdcBalance}`
+                        : `${formattedTokenBalance} ${asset.ticker}`}
+                    </span>
+                  </div>
+                </div>
+              )}
+
               {/* Rate info */}
               <div className="space-y-2 pt-2 text-sm">
                 <div className="flex justify-between">
@@ -433,6 +607,12 @@ export function AssetDetailView({ asset }: { asset: AssetData }) {
                 {isProcessing && <Loader2 className="w-4 h-4 animate-spin" />}
                 {!(mounted && isConnected)
                   ? "Connect Wallet"
+                  : isProcessing
+                  ? txStep === "approving"
+                    ? "Approving USDC..."
+                    : txStep === "trading"
+                    ? (activeTab === "buy" ? "Buying..." : "Selling...")
+                    : "Processing..."
                   : activeTab === "buy"
                   ? `Buy ${asset.ticker}`
                   : `Sell ${asset.ticker}`}

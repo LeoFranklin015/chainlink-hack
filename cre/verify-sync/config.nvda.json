@@ -1,18 +1,18 @@
 {
   "primaryChain": {
     "chainSelectorName": "ethereum-testnet-sepolia-base-1",
-    "exchangeAddress": "0xCdb4524125f18cB4574D50aBa20896aDD0f48e76",
+    "exchangeAddress": "0x06a26BCd49421952c8791cEf860c9824B6b45106",
     "gasLimit": "500000"
   },
   "targetChains": [
     {
       "chainSelectorName": "ethereum-testnet-sepolia-arbitrum-1",
-      "exchangeAddress": "0xA6A43e98c06A21dd6A5618c05D73f34dc305BF21",
+      "exchangeAddress": "0xCEA1Ff3051DF8c6AeB1613726E33F9096897d90E",
       "gasLimit": "500000"
     },
     {
       "chainSelectorName": "avalanche-testnet-fuji",
-      "exchangeAddress": "0x7FAEFA4eac0522749E841C34d9E503420468D5Ac",
+      "exchangeAddress": "0x6d1ea244c4b6C3d62488b7FDa0955Bdd354D1613",
       "gasLimit": "500000"
     }
   ]
