@@ -13,13 +13,11 @@ export async function POST(request: Request): Promise<Response> {
   }
 
   try {
-    const adjusted = "0x" + (BigInt(nullifierHash) + BigInt(2)).toString(16)
-    console.log("[allowlist] walletAddress:", walletAddress, "nullifierHash:", nullifierHash, "adjusted:", adjusted)
 
     const res = await fetch(`${CRE_BACKEND_URL}/allowlist`, {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ walletAddress, nullifierHash: adjusted }),
+      body: JSON.stringify({ walletAddress, nullifierHash }),
     })
 
     const data = await res.json()
