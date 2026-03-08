@@ -20,6 +20,7 @@ type QuoteData = {
   changePercent: number
   high: number
   low: number
+  sparkline: number[]
 }
 
 // Fetch real quotes via our API route (proxies Yahoo Finance, with 24h→48h→72h fallback)
@@ -34,18 +35,9 @@ async function fetchQuotes(symbols: string[]): Promise<Record<string, QuoteData>
   }
 }
 
-// Generate sparkline from a base price
-function generateSparkline(basePrice: number, change: number, ticker: string, points: number = 24): number[] {
-  const seed = ticker.split("").reduce((a, c) => a + c.charCodeAt(0), 0)
-  const data: number[] = []
-  const startPrice = basePrice - change
-  for (let i = 0; i < points; i++) {
-    const progress = i / (points - 1)
-    const x = Math.sin(seed + i * 13) * 10000
-    const noise = ((x - Math.floor(x)) - 0.5) * basePrice * 0.01
-    data.push(startPrice + change * progress + noise)
-  }
-  return data
+// Placeholder sparkline while loading (flat line at base price)
+function flatSparkline(price: number, points: number = 24): number[] {
+  return Array(points).fill(price)
 }
 
 export function useStockQuotes() {
@@ -94,10 +86,13 @@ export function useStockQuotes() {
       const change24h = quote?.change ?? (currentPrice - asset.price)
       const change24hPercent = quote?.changePercent ?? (asset.price ? ((currentPrice - asset.price) / asset.price) * 100 : 0)
 
+      // Priority: live WS history > real Yahoo sparkline > flat placeholder
       const sparklineData =
         historyRef.current[asset.ticker]?.length > 2
           ? historyRef.current[asset.ticker]
-          : generateSparkline(currentPrice, change24h, asset.ticker)
+          : quote?.sparkline?.length
+            ? quote.sparkline
+            : flatSparkline(currentPrice)
 
       const high24h = quote?.high ?? Math.max(...sparklineData)
       const low24h = quote?.low ?? Math.min(...sparklineData)

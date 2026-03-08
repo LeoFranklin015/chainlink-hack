@@ -7,6 +7,7 @@ type ChartResult = {
   changePercent: number
   high: number
   low: number
+  sparkline: number[]
 }
 
 // Try fetching chart data for a given range, return null if no usable data
@@ -36,6 +37,9 @@ async function fetchChart(symbol: string, range: string, interval: string): Prom
     const validHighs = highs.filter((h): h is number => h != null)
     const validLows = lows.filter((l): l is number => l != null)
 
+    // Downsample sparkline to ~24 points for the card mini-charts
+    const sparkline = downsample(validCloses, 24)
+
     return {
       symbol,
       price: currentPrice,
@@ -43,10 +47,22 @@ async function fetchChart(symbol: string, range: string, interval: string): Prom
       changePercent,
       high: validHighs.length ? Math.max(...validHighs) : currentPrice,
       low: validLows.length ? Math.min(...validLows) : currentPrice,
+      sparkline,
     }
   } catch {
     return null
   }
+}
+
+// Downsample an array to roughly `target` evenly-spaced points
+function downsample(data: number[], target: number): number[] {
+  if (data.length <= target) return data
+  const step = (data.length - 1) / (target - 1)
+  const result: number[] = []
+  for (let i = 0; i < target; i++) {
+    result.push(data[Math.round(i * step)])
+  }
+  return result
 }
 
 export async function GET(request: Request) {
@@ -66,7 +82,7 @@ export async function GET(request: Request) {
       let result = await fetchChart(symbol, "1d", "5m")
       // If no data (weekend/holiday), try 2 days
       if (!result) result = await fetchChart(symbol, "2d", "15m")
-      // If still nothing, try 3 days
+      // If still nothing, try 5 days
       if (!result) result = await fetchChart(symbol, "5d", "1d")
 
       if (result) {
