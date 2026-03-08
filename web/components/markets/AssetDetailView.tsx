@@ -179,14 +179,6 @@ export function AssetDetailView({ asset }: { asset: AssetData }) {
           {/* Chart */}
           <div className="rounded-2xl bg-card border border-border p-6">
             <div className="h-[360px] w-full">
-              {liveData.isLoading || chartData.length === 0 ? (
-                <div className="h-full flex items-center justify-center">
-                  <div className="flex flex-col items-center gap-3">
-                    <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
-                    <p className="text-sm text-muted-foreground">Loading chart data...</p>
-                  </div>
-                </div>
-              ) : (
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart data={chartData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
                   <defs>
@@ -238,7 +230,6 @@ export function AssetDetailView({ asset }: { asset: AssetData }) {
                   />
                 </AreaChart>
               </ResponsiveContainer>
-              )}
             </div>
           </div>
 
