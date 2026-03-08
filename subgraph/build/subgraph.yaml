@@ -5,37 +5,43 @@ schema:
   file: schema.graphql
 dataSources:
   - kind: ethereum
-    name: SynthStocksExchange
-    network: avalanche-fuji
+    name: MultiTokenExchange
+    network: base-sepolia
     source:
-      abi: SynthStocksExchange
-      address: "0xBA37b69AA7846E704B055f53456A649aDF113541"
-      startBlock: 0
+      abi: MultiTokenExchange
+      address: "0x06a26BCd49421952c8791cEf860c9824B6b45106"
+      startBlock: 22998000
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.7
       language: wasm/assemblyscript
       entities:
-        - Holder
+        - Token
+        - User
+        - Position
         - Trade
         - UserVerification
         - HoldingLimitEvent
         - CrossChainSupplyUpdate
         - ExchangeStats
       abis:
-        - name: SynthStocksExchange
-          file: SynthStocksExchange/SynthStocksExchange.json
+        - name: MultiTokenExchange
+          file: MultiTokenExchange/MultiTokenExchange.json
       eventHandlers:
-        - event: Buy(indexed address,uint256,uint256)
+        - event: TokenAdded(indexed address,address,address,uint256)
+          handler: handleTokenAdded
+        - event: TokenRemoved(indexed address)
+          handler: handleTokenRemoved
+        - event: Buy(indexed address,indexed address,uint256,uint256)
           handler: handleBuy
-        - event: Sell(indexed address,uint256,uint256)
+        - event: Sell(indexed address,indexed address,uint256,uint256)
           handler: handleSell
         - event: UserVerified(indexed address,uint256)
           handler: handleUserVerified
-        - event: HolderFlagged(indexed address,uint256,uint256)
+        - event: HolderFlagged(indexed address,indexed address,uint256,uint256)
           handler: handleHolderFlagged
-        - event: HolderUnflagged(indexed address)
+        - event: HolderUnflagged(indexed address,indexed address)
           handler: handleHolderUnflagged
-        - event: CrossChainSupplyUpdated(uint256,uint256)
+        - event: CrossChainSupplyUpdated(indexed address,uint256,uint256)
           handler: handleCrossChainSupplyUpdated
-      file: SynthStocksExchange/SynthStocksExchange.wasm
+      file: MultiTokenExchange/MultiTokenExchange.wasm

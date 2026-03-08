@@ -10,6 +10,54 @@ import {
   BigInt,
 } from "@graphprotocol/graph-ts";
 
+export class TokenAdded extends ethereum.Event {
+  get params(): TokenAdded__Params {
+    return new TokenAdded__Params(this);
+  }
+}
+
+export class TokenAdded__Params {
+  _event: TokenAdded;
+
+  constructor(event: TokenAdded) {
+    this._event = event;
+  }
+
+  get token(): Address {
+    return this._event.parameters[0].value.toAddress();
+  }
+
+  get priceFeed(): Address {
+    return this._event.parameters[1].value.toAddress();
+  }
+
+  get transferLock(): Address {
+    return this._event.parameters[2].value.toAddress();
+  }
+
+  get supplyCap(): BigInt {
+    return this._event.parameters[3].value.toBigInt();
+  }
+}
+
+export class TokenRemoved extends ethereum.Event {
+  get params(): TokenRemoved__Params {
+    return new TokenRemoved__Params(this);
+  }
+}
+
+export class TokenRemoved__Params {
+  _event: TokenRemoved;
+
+  constructor(event: TokenRemoved) {
+    this._event = event;
+  }
+
+  get token(): Address {
+    return this._event.parameters[0].value.toAddress();
+  }
+}
+
 export class Buy extends ethereum.Event {
   get params(): Buy__Params {
     return new Buy__Params(this);
@@ -23,16 +71,20 @@ export class Buy__Params {
     this._event = event;
   }
 
-  get buyer(): Address {
+  get token(): Address {
     return this._event.parameters[0].value.toAddress();
   }
 
+  get buyer(): Address {
+    return this._event.parameters[1].value.toAddress();
+  }
+
   get usdcAmount(): BigInt {
-    return this._event.parameters[1].value.toBigInt();
+    return this._event.parameters[2].value.toBigInt();
   }
 
   get tokenAmount(): BigInt {
-    return this._event.parameters[2].value.toBigInt();
+    return this._event.parameters[3].value.toBigInt();
   }
 }
 
@@ -49,16 +101,20 @@ export class Sell__Params {
     this._event = event;
   }
 
-  get seller(): Address {
+  get token(): Address {
     return this._event.parameters[0].value.toAddress();
   }
 
+  get seller(): Address {
+    return this._event.parameters[1].value.toAddress();
+  }
+
   get usdcAmount(): BigInt {
-    return this._event.parameters[1].value.toBigInt();
+    return this._event.parameters[2].value.toBigInt();
   }
 
   get tokenAmount(): BigInt {
-    return this._event.parameters[2].value.toBigInt();
+    return this._event.parameters[3].value.toBigInt();
   }
 }
 
@@ -97,16 +153,20 @@ export class HolderFlagged__Params {
     this._event = event;
   }
 
-  get holder(): Address {
+  get token(): Address {
     return this._event.parameters[0].value.toAddress();
   }
 
+  get holder(): Address {
+    return this._event.parameters[1].value.toAddress();
+  }
+
   get balance(): BigInt {
-    return this._event.parameters[1].value.toBigInt();
+    return this._event.parameters[2].value.toBigInt();
   }
 
   get totalSupply(): BigInt {
-    return this._event.parameters[2].value.toBigInt();
+    return this._event.parameters[3].value.toBigInt();
   }
 }
 
@@ -123,8 +183,12 @@ export class HolderUnflagged__Params {
     this._event = event;
   }
 
-  get holder(): Address {
+  get token(): Address {
     return this._event.parameters[0].value.toAddress();
+  }
+
+  get holder(): Address {
+    return this._event.parameters[1].value.toAddress();
   }
 }
 
@@ -141,17 +205,21 @@ export class CrossChainSupplyUpdated__Params {
     this._event = event;
   }
 
+  get token(): Address {
+    return this._event.parameters[0].value.toAddress();
+  }
+
   get crossChainSupply(): BigInt {
-    return this._event.parameters[0].value.toBigInt();
+    return this._event.parameters[1].value.toBigInt();
   }
 
   get localSupply(): BigInt {
-    return this._event.parameters[1].value.toBigInt();
+    return this._event.parameters[2].value.toBigInt();
   }
 }
 
-export class SynthStocksExchange extends ethereum.SmartContract {
-  static bind(address: Address): SynthStocksExchange {
-    return new SynthStocksExchange("SynthStocksExchange", address);
+export class MultiTokenExchange extends ethereum.SmartContract {
+  static bind(address: Address): MultiTokenExchange {
+    return new MultiTokenExchange("MultiTokenExchange", address);
   }
 }

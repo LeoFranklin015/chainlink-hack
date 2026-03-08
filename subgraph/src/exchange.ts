@@ -1,35 +1,70 @@
 import { Bytes, BigInt } from "@graphprotocol/graph-ts";
 import {
+  TokenAdded,
+  TokenRemoved,
   Buy,
   Sell,
   UserVerified,
   HolderFlagged,
   HolderUnflagged,
   CrossChainSupplyUpdated,
-} from "../generated/SynthStocksExchange/SynthStocksExchange";
+} from "../generated/MultiTokenExchange/MultiTokenExchange";
 import {
+  Token,
   Trade,
+  Position,
   UserVerification,
   HoldingLimitEvent,
   CrossChainSupplyUpdate,
-  Holder,
 } from "../generated/schema";
-import { getOrCreateHolder, getOrCreateStats, ONE } from "./utils";
+import {
+  getOrCreateUser,
+  getOrCreatePosition,
+  getOrCreateStats,
+  ONE,
+  ZERO,
+} from "./utils";
 
 function eventId(txHash: Bytes, logIndex: BigInt): Bytes {
   return txHash.concatI32(logIndex.toI32());
 }
 
+export function handleTokenAdded(event: TokenAdded): void {
+  let token = new Token(event.params.token);
+  token.priceFeed = event.params.priceFeed;
+  token.transferLock = event.params.transferLock;
+  token.supplyCap = event.params.supplyCap;
+  token.active = true;
+  token.save();
+
+  let stats = getOrCreateStats();
+  stats.tokenCount = stats.tokenCount.plus(ONE);
+  stats.save();
+}
+
+export function handleTokenRemoved(event: TokenRemoved): void {
+  let token = Token.load(event.params.token);
+  if (token != null) {
+    token.active = false;
+    token.save();
+  }
+}
+
 export function handleBuy(event: Buy): void {
-  let holder = getOrCreateHolder(event.params.buyer);
-  holder.balance = holder.balance.plus(event.params.tokenAmount);
-  holder.totalBought = holder.totalBought.plus(event.params.tokenAmount);
-  holder.totalVolumeUSDC = holder.totalVolumeUSDC.plus(event.params.usdcAmount);
-  holder.save();
+  let user = getOrCreateUser(event.params.buyer);
+  let position = getOrCreatePosition(event.params.token, event.params.buyer);
+
+  position.balance = position.balance.plus(event.params.tokenAmount);
+  position.totalBought = position.totalBought.plus(event.params.tokenAmount);
+  position.totalVolumeUSDC = position.totalVolumeUSDC.plus(
+    event.params.usdcAmount
+  );
+  position.save();
 
   let trade = new Trade(eventId(event.transaction.hash, event.logIndex));
   trade.type = "BUY";
-  trade.holder = holder.id;
+  trade.token = event.params.token;
+  trade.user = user.id;
   trade.usdcAmount = event.params.usdcAmount;
   trade.tokenAmount = event.params.tokenAmount;
   trade.blockNumber = event.block.number;
@@ -45,15 +80,20 @@ export function handleBuy(event: Buy): void {
 }
 
 export function handleSell(event: Sell): void {
-  let holder = getOrCreateHolder(event.params.seller);
-  holder.balance = holder.balance.minus(event.params.tokenAmount);
-  holder.totalSold = holder.totalSold.plus(event.params.tokenAmount);
-  holder.totalVolumeUSDC = holder.totalVolumeUSDC.plus(event.params.usdcAmount);
-  holder.save();
+  let user = getOrCreateUser(event.params.seller);
+  let position = getOrCreatePosition(event.params.token, event.params.seller);
+
+  position.balance = position.balance.minus(event.params.tokenAmount);
+  position.totalSold = position.totalSold.plus(event.params.tokenAmount);
+  position.totalVolumeUSDC = position.totalVolumeUSDC.plus(
+    event.params.usdcAmount
+  );
+  position.save();
 
   let trade = new Trade(eventId(event.transaction.hash, event.logIndex));
   trade.type = "SELL";
-  trade.holder = holder.id;
+  trade.token = event.params.token;
+  trade.user = user.id;
   trade.usdcAmount = event.params.usdcAmount;
   trade.tokenAmount = event.params.tokenAmount;
   trade.blockNumber = event.block.number;
@@ -69,9 +109,9 @@ export function handleSell(event: Sell): void {
 }
 
 export function handleUserVerified(event: UserVerified): void {
-  let holder = getOrCreateHolder(event.params.user);
-  holder.verified = true;
-  holder.save();
+  let user = getOrCreateUser(event.params.user);
+  user.verified = true;
+  user.save();
 
   let verification = new UserVerification(
     eventId(event.transaction.hash, event.logIndex)
@@ -89,15 +129,16 @@ export function handleUserVerified(event: UserVerified): void {
 }
 
 export function handleHolderFlagged(event: HolderFlagged): void {
-  let holder = Holder.load(event.params.holder);
-  if (holder != null) {
-    holder.flagged = true;
-    holder.save();
+  let position = Position.load(event.params.token.concat(event.params.holder));
+  if (position != null) {
+    position.flagged = true;
+    position.save();
   }
 
   let limitEvent = new HoldingLimitEvent(
     eventId(event.transaction.hash, event.logIndex)
   );
+  limitEvent.token = event.params.token;
   limitEvent.holder = event.params.holder;
   limitEvent.flagged = true;
   limitEvent.balance = event.params.balance;
@@ -109,15 +150,16 @@ export function handleHolderFlagged(event: HolderFlagged): void {
 }
 
 export function handleHolderUnflagged(event: HolderUnflagged): void {
-  let holder = Holder.load(event.params.holder);
-  if (holder != null) {
-    holder.flagged = false;
-    holder.save();
+  let position = Position.load(event.params.token.concat(event.params.holder));
+  if (position != null) {
+    position.flagged = false;
+    position.save();
   }
 
   let limitEvent = new HoldingLimitEvent(
     eventId(event.transaction.hash, event.logIndex)
   );
+  limitEvent.token = event.params.token;
   limitEvent.holder = event.params.holder;
   limitEvent.flagged = false;
   limitEvent.balance = null;
@@ -134,6 +176,7 @@ export function handleCrossChainSupplyUpdated(
   let update = new CrossChainSupplyUpdate(
     eventId(event.transaction.hash, event.logIndex)
   );
+  update.token = event.params.token;
   update.crossChainSupply = event.params.crossChainSupply;
   update.localSupply = event.params.localSupply;
   update.blockNumber = event.block.number;

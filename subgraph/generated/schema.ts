@@ -11,7 +11,7 @@ import {
   BigDecimal,
 } from "@graphprotocol/graph-ts";
 
-export class Holder extends Entity {
+export class Token extends Entity {
   constructor(id: Bytes) {
     super();
     this.set("id", Value.fromBytes(id));
@@ -19,24 +19,24 @@ export class Holder extends Entity {
 
   save(): void {
     let id = this.get("id");
-    assert(id != null, "Cannot save Holder entity without an ID");
+    assert(id != null, "Cannot save Token entity without an ID");
     if (id) {
       assert(
         id.kind == ValueKind.BYTES,
-        `Entities of type Holder must have an ID of type Bytes but the id '${id.displayData()}' is of type ${id.displayKind()}`,
+        `Entities of type Token must have an ID of type Bytes but the id '${id.displayData()}' is of type ${id.displayKind()}`,
       );
-      store.set("Holder", id.toBytes().toHexString(), this);
+      store.set("Token", id.toBytes().toHexString(), this);
     }
   }
 
-  static loadInBlock(id: Bytes): Holder | null {
-    return changetype<Holder | null>(
-      store.get_in_block("Holder", id.toHexString()),
+  static loadInBlock(id: Bytes): Token | null {
+    return changetype<Token | null>(
+      store.get_in_block("Token", id.toHexString()),
     );
   }
 
-  static load(id: Bytes): Holder | null {
-    return changetype<Holder | null>(store.get("Holder", id.toHexString()));
+  static load(id: Bytes): Token | null {
+    return changetype<Token | null>(store.get("Token", id.toHexString()));
   }
 
   get id(): Bytes {
@@ -50,6 +50,213 @@ export class Holder extends Entity {
 
   set id(value: Bytes) {
     this.set("id", Value.fromBytes(value));
+  }
+
+  get priceFeed(): Bytes {
+    let value = this.get("priceFeed");
+    if (!value || value.kind == ValueKind.NULL) {
+      throw new Error("Cannot return null for a required field.");
+    } else {
+      return value.toBytes();
+    }
+  }
+
+  set priceFeed(value: Bytes) {
+    this.set("priceFeed", Value.fromBytes(value));
+  }
+
+  get transferLock(): Bytes {
+    let value = this.get("transferLock");
+    if (!value || value.kind == ValueKind.NULL) {
+      throw new Error("Cannot return null for a required field.");
+    } else {
+      return value.toBytes();
+    }
+  }
+
+  set transferLock(value: Bytes) {
+    this.set("transferLock", Value.fromBytes(value));
+  }
+
+  get supplyCap(): BigInt {
+    let value = this.get("supplyCap");
+    if (!value || value.kind == ValueKind.NULL) {
+      throw new Error("Cannot return null for a required field.");
+    } else {
+      return value.toBigInt();
+    }
+  }
+
+  set supplyCap(value: BigInt) {
+    this.set("supplyCap", Value.fromBigInt(value));
+  }
+
+  get active(): boolean {
+    let value = this.get("active");
+    if (!value || value.kind == ValueKind.NULL) {
+      return false;
+    } else {
+      return value.toBoolean();
+    }
+  }
+
+  set active(value: boolean) {
+    this.set("active", Value.fromBoolean(value));
+  }
+
+  get positions(): PositionLoader {
+    return new PositionLoader(
+      "Token",
+      this.get("id")!.toBytes().toHexString(),
+      "positions",
+    );
+  }
+
+  get trades(): TradeLoader {
+    return new TradeLoader(
+      "Token",
+      this.get("id")!.toBytes().toHexString(),
+      "trades",
+    );
+  }
+}
+
+export class User extends Entity {
+  constructor(id: Bytes) {
+    super();
+    this.set("id", Value.fromBytes(id));
+  }
+
+  save(): void {
+    let id = this.get("id");
+    assert(id != null, "Cannot save User entity without an ID");
+    if (id) {
+      assert(
+        id.kind == ValueKind.BYTES,
+        `Entities of type User must have an ID of type Bytes but the id '${id.displayData()}' is of type ${id.displayKind()}`,
+      );
+      store.set("User", id.toBytes().toHexString(), this);
+    }
+  }
+
+  static loadInBlock(id: Bytes): User | null {
+    return changetype<User | null>(
+      store.get_in_block("User", id.toHexString()),
+    );
+  }
+
+  static load(id: Bytes): User | null {
+    return changetype<User | null>(store.get("User", id.toHexString()));
+  }
+
+  get id(): Bytes {
+    let value = this.get("id");
+    if (!value || value.kind == ValueKind.NULL) {
+      throw new Error("Cannot return null for a required field.");
+    } else {
+      return value.toBytes();
+    }
+  }
+
+  set id(value: Bytes) {
+    this.set("id", Value.fromBytes(value));
+  }
+
+  get verified(): boolean {
+    let value = this.get("verified");
+    if (!value || value.kind == ValueKind.NULL) {
+      return false;
+    } else {
+      return value.toBoolean();
+    }
+  }
+
+  set verified(value: boolean) {
+    this.set("verified", Value.fromBoolean(value));
+  }
+
+  get positions(): PositionLoader {
+    return new PositionLoader(
+      "User",
+      this.get("id")!.toBytes().toHexString(),
+      "positions",
+    );
+  }
+
+  get trades(): TradeLoader {
+    return new TradeLoader(
+      "User",
+      this.get("id")!.toBytes().toHexString(),
+      "trades",
+    );
+  }
+}
+
+export class Position extends Entity {
+  constructor(id: Bytes) {
+    super();
+    this.set("id", Value.fromBytes(id));
+  }
+
+  save(): void {
+    let id = this.get("id");
+    assert(id != null, "Cannot save Position entity without an ID");
+    if (id) {
+      assert(
+        id.kind == ValueKind.BYTES,
+        `Entities of type Position must have an ID of type Bytes but the id '${id.displayData()}' is of type ${id.displayKind()}`,
+      );
+      store.set("Position", id.toBytes().toHexString(), this);
+    }
+  }
+
+  static loadInBlock(id: Bytes): Position | null {
+    return changetype<Position | null>(
+      store.get_in_block("Position", id.toHexString()),
+    );
+  }
+
+  static load(id: Bytes): Position | null {
+    return changetype<Position | null>(store.get("Position", id.toHexString()));
+  }
+
+  get id(): Bytes {
+    let value = this.get("id");
+    if (!value || value.kind == ValueKind.NULL) {
+      throw new Error("Cannot return null for a required field.");
+    } else {
+      return value.toBytes();
+    }
+  }
+
+  set id(value: Bytes) {
+    this.set("id", Value.fromBytes(value));
+  }
+
+  get token(): Bytes {
+    let value = this.get("token");
+    if (!value || value.kind == ValueKind.NULL) {
+      throw new Error("Cannot return null for a required field.");
+    } else {
+      return value.toBytes();
+    }
+  }
+
+  set token(value: Bytes) {
+    this.set("token", Value.fromBytes(value));
+  }
+
+  get user(): Bytes {
+    let value = this.get("user");
+    if (!value || value.kind == ValueKind.NULL) {
+      throw new Error("Cannot return null for a required field.");
+    } else {
+      return value.toBytes();
+    }
+  }
+
+  set user(value: Bytes) {
+    this.set("user", Value.fromBytes(value));
   }
 
   get balance(): BigInt {
@@ -104,19 +311,6 @@ export class Holder extends Entity {
     this.set("totalVolumeUSDC", Value.fromBigInt(value));
   }
 
-  get verified(): boolean {
-    let value = this.get("verified");
-    if (!value || value.kind == ValueKind.NULL) {
-      return false;
-    } else {
-      return value.toBoolean();
-    }
-  }
-
-  set verified(value: boolean) {
-    this.set("verified", Value.fromBoolean(value));
-  }
-
   get flagged(): boolean {
     let value = this.get("flagged");
     if (!value || value.kind == ValueKind.NULL) {
@@ -128,14 +322,6 @@ export class Holder extends Entity {
 
   set flagged(value: boolean) {
     this.set("flagged", Value.fromBoolean(value));
-  }
-
-  get trades(): TradeLoader {
-    return new TradeLoader(
-      "Holder",
-      this.get("id")!.toBytes().toHexString(),
-      "trades",
-    );
   }
 }
 
@@ -193,8 +379,8 @@ export class Trade extends Entity {
     this.set("type", Value.fromString(value));
   }
 
-  get holder(): Bytes {
-    let value = this.get("holder");
+  get token(): Bytes {
+    let value = this.get("token");
     if (!value || value.kind == ValueKind.NULL) {
       throw new Error("Cannot return null for a required field.");
     } else {
@@ -202,8 +388,21 @@ export class Trade extends Entity {
     }
   }
 
-  set holder(value: Bytes) {
-    this.set("holder", Value.fromBytes(value));
+  set token(value: Bytes) {
+    this.set("token", Value.fromBytes(value));
+  }
+
+  get user(): Bytes {
+    let value = this.get("user");
+    if (!value || value.kind == ValueKind.NULL) {
+      throw new Error("Cannot return null for a required field.");
+    } else {
+      return value.toBytes();
+    }
+  }
+
+  set user(value: Bytes) {
+    this.set("user", Value.fromBytes(value));
   }
 
   get usdcAmount(): BigInt {
@@ -424,6 +623,19 @@ export class HoldingLimitEvent extends Entity {
     this.set("id", Value.fromBytes(value));
   }
 
+  get token(): Bytes {
+    let value = this.get("token");
+    if (!value || value.kind == ValueKind.NULL) {
+      throw new Error("Cannot return null for a required field.");
+    } else {
+      return value.toBytes();
+    }
+  }
+
+  set token(value: Bytes) {
+    this.set("token", Value.fromBytes(value));
+  }
+
   get holder(): Bytes {
     let value = this.get("holder");
     if (!value || value.kind == ValueKind.NULL) {
@@ -568,6 +780,19 @@ export class CrossChainSupplyUpdate extends Entity {
 
   set id(value: Bytes) {
     this.set("id", Value.fromBytes(value));
+  }
+
+  get token(): Bytes {
+    let value = this.get("token");
+    if (!value || value.kind == ValueKind.NULL) {
+      throw new Error("Cannot return null for a required field.");
+    } else {
+      return value.toBytes();
+    }
+  }
+
+  set token(value: Bytes) {
+    this.set("token", Value.fromBytes(value));
   }
 
   get crossChainSupply(): BigInt {
@@ -729,8 +954,8 @@ export class ExchangeStats extends Entity {
     this.set("totalSold", Value.fromBigInt(value));
   }
 
-  get holderCount(): BigInt {
-    let value = this.get("holderCount");
+  get tokenCount(): BigInt {
+    let value = this.get("tokenCount");
     if (!value || value.kind == ValueKind.NULL) {
       throw new Error("Cannot return null for a required field.");
     } else {
@@ -738,8 +963,21 @@ export class ExchangeStats extends Entity {
     }
   }
 
-  set holderCount(value: BigInt) {
-    this.set("holderCount", Value.fromBigInt(value));
+  set tokenCount(value: BigInt) {
+    this.set("tokenCount", Value.fromBigInt(value));
+  }
+
+  get userCount(): BigInt {
+    let value = this.get("userCount");
+    if (!value || value.kind == ValueKind.NULL) {
+      throw new Error("Cannot return null for a required field.");
+    } else {
+      return value.toBigInt();
+    }
+  }
+
+  set userCount(value: BigInt) {
+    this.set("userCount", Value.fromBigInt(value));
   }
 
   get verifiedUserCount(): BigInt {
@@ -753,6 +991,24 @@ export class ExchangeStats extends Entity {
 
   set verifiedUserCount(value: BigInt) {
     this.set("verifiedUserCount", Value.fromBigInt(value));
+  }
+}
+
+export class PositionLoader extends Entity {
+  _entity: string;
+  _field: string;
+  _id: string;
+
+  constructor(entity: string, id: string, field: string) {
+    super();
+    this._entity = entity;
+    this._id = id;
+    this._field = field;
+  }
+
+  load(): Position[] {
+    let value = store.loadRelated(this._entity, this._id, this._field);
+    return changetype<Position[]>(value);
   }
 }
 

@@ -1,19 +1,19 @@
 {
   "base-sepolia": {
-    "SynthStocksExchange": {
-      "address": "0xBA37b69AA7846E704B055f53456A649aDF113541",
+    "MultiTokenExchange": {
+      "address": "0x06a26BCd49421952c8791cEf860c9824B6b45106",
       "startBlock": 22998000
     }
   },
   "arbitrum-sepolia": {
-    "SynthStocksExchange": {
-      "address": "0x803A14FaC343C1C8FeEAd0dfE41442715e21fb3D",
+    "MultiTokenExchange": {
+      "address": "0xCEA1Ff3051DF8c6AeB1613726E33F9096897d90E",
       "startBlock": 120000000
     }
   },
-  "avalanche-fuji": {
-    "SynthStocksExchange": {
-      "address": "0xBA37b69AA7846E704B055f53456A649aDF113541",
+  "fuji": {
+    "MultiTokenExchange": {
+      "address": "0x6d1ea244c4b6C3d62488b7FDa0955Bdd354D1613",
       "startBlock": 0
     }
   }

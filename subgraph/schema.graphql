@@ -1,12 +1,29 @@
-type Holder @entity {
-  id: Bytes! # address
+type Token @entity {
+  id: Bytes! # token address
+  priceFeed: Bytes!
+  transferLock: Bytes!
+  supplyCap: BigInt!
+  active: Boolean!
+  positions: [Position!]! @derivedFrom(field: "token")
+  trades: [Trade!]! @derivedFrom(field: "token")
+}
+
+type User @entity {
+  id: Bytes! # wallet address
+  verified: Boolean!
+  positions: [Position!]! @derivedFrom(field: "user")
+  trades: [Trade!]! @derivedFrom(field: "user")
+}
+
+type Position @entity {
+  id: Bytes! # token address + user address
+  token: Token!
+  user: User!
   balance: BigInt!
   totalBought: BigInt!
   totalSold: BigInt!
   totalVolumeUSDC: BigInt!
-  verified: Boolean!
   flagged: Boolean!
-  trades: [Trade!]! @derivedFrom(field: "holder")
 }
 
 enum TradeType {
@@ -15,9 +32,10 @@ enum TradeType {
 }
 
 type Trade @entity(immutable: true) {
-  id: Bytes! # tx hash + log index
+  id: Bytes!
   type: TradeType!
-  holder: Holder!
+  token: Token!
+  user: User!
   usdcAmount: BigInt!
   tokenAmount: BigInt!
   blockNumber: BigInt!
@@ -26,7 +44,7 @@ type Trade @entity(immutable: true) {
 }
 
 type UserVerification @entity(immutable: true) {
-  id: Bytes! # tx hash + log index
+  id: Bytes!
   user: Bytes!
   nullifierHash: BigInt!
   blockNumber: BigInt!
@@ -35,18 +53,20 @@ type UserVerification @entity(immutable: true) {
 }
 
 type HoldingLimitEvent @entity(immutable: true) {
-  id: Bytes! # tx hash + log index
+  id: Bytes!
+  token: Bytes!
   holder: Bytes!
   flagged: Boolean!
-  balance: BigInt # only set on flag
-  totalSupply: BigInt # only set on flag
+  balance: BigInt
+  totalSupply: BigInt
   blockNumber: BigInt!
   timestamp: BigInt!
   transactionHash: Bytes!
 }
 
 type CrossChainSupplyUpdate @entity(immutable: true) {
-  id: Bytes! # tx hash + log index
+  id: Bytes!
+  token: Bytes!
   crossChainSupply: BigInt!
   localSupply: BigInt!
   blockNumber: BigInt!
@@ -60,6 +80,7 @@ type ExchangeStats @entity {
   totalVolumeUSDC: BigInt!
   totalBought: BigInt!
   totalSold: BigInt!
-  holderCount: BigInt!
+  tokenCount: BigInt!
+  userCount: BigInt!
   verifiedUserCount: BigInt!
 }
