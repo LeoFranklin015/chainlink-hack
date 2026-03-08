@@ -4,7 +4,7 @@ import { useState, useCallback } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import {
   IDKitRequestWidget,
-  device,
+  deviceLegacy,
   type RpContext,
 } from "@worldcoin/idkit"
 import {
@@ -347,7 +347,7 @@ export default function VerifyPage() {
               app_id={appId as `app_${string}`}
               action={action}
               rp_context={rpContext}
-              preset={device()}
+              preset={deviceLegacy()}
               handleVerify={handleVerify}
               onSuccess={onSuccess}
             />
