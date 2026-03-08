@@ -18,6 +18,26 @@ export const config = createConfig({
         uiHandler: uiHandler as ReactUIHandler,
         showTestnets: true,
       },
+      paymasters: {
+        [baseSepolia.id]: {
+          url: `https://api.pimlico.io/v2/${baseSepolia.id}/rpc?apikey=${process.env.NEXT_PUBLIC_PAYMASTER_API_KEY!}`,
+          context: {
+            sponsorshipPolicyId: process.env.NEXT_PUBLIC_POLICY_ID!,
+          },
+        },
+        [arbitrumSepolia.id]: {
+          url: `https://api.pimlico.io/v2/${arbitrumSepolia.id}/rpc?apikey=${process.env.NEXT_PUBLIC_PAYMASTER_API_KEY!}`,
+          context: {
+            sponsorshipPolicyId: process.env.NEXT_PUBLIC_POLICY_ID!,
+          },
+        },
+        [avalancheFuji.id]: {
+          url: `https://api.pimlico.io/v2/${avalancheFuji.id}/rpc?apikey=${process.env.NEXT_PUBLIC_PAYMASTER_API_KEY!}`,
+          context: {
+            sponsorshipPolicyId: process.env.NEXT_PUBLIC_POLICY_ID!,
+          },
+        },
+      },
     }),
   ],
   transports: {

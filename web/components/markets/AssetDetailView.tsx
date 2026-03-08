@@ -10,7 +10,7 @@ import {
   ResponsiveContainer,
   CartesianGrid,
 } from "recharts"
-import { ChevronDown, ArrowDown, HelpCircle, Loader2 } from "lucide-react"
+import { ChevronDown, ArrowDown, HelpCircle, Loader2, Check } from "lucide-react"
 import type { AssetData } from "@/lib/assets"
 import { useAssetDetail } from "@/hooks/useAssetDetail"
 import { cn, getStockLogoUrl } from "@/lib/utils"
@@ -20,12 +20,13 @@ import { config } from "@/config/wagmi"
 import { toast } from "sonner"
 import { parseUnits, formatUnits, encodeFunctionData } from "viem"
 import {
-  USDC_ADDRESS,
-  EXCHANGE_ADDRESS,
+  TRADEABLE_CHAINS,
+  DEFAULT_CHAIN,
   TOKEN_ADDRESSES,
   ERC20_ABI,
   EXCHANGE_ABI,
   USDC_DECIMALS,
+  type ChainContracts,
 } from "@/lib/contracts"
 
 const CHART_RANGES = [
@@ -50,47 +51,55 @@ export function AssetDetailView({ asset }: { asset: AssetData }) {
   const connectMutation = useConnect()
   const [mounted, setMounted] = useState(false)
   const [txStep, setTxStep] = useState<"idle" | "approving" | "trading">("idle")
+  const [selectedChain, setSelectedChain] = useState<ChainContracts>(DEFAULT_CHAIN)
+  const [chainDropdownOpen, setChainDropdownOpen] = useState(false)
   useEffect(() => setMounted(true), [])
 
   const tokenAddress = TOKEN_ADDRESSES[asset.ticker]
+  const usdcAddress = selectedChain.usdc
+  const exchangeAddress = selectedChain.exchange
 
-  // Read USDC balance
+  // Read USDC balance on selected chain
   const { data: usdcBalance } = useReadContract({
-    address: USDC_ADDRESS,
+    address: usdcAddress,
     abi: ERC20_ABI,
     functionName: "balanceOf",
     args: address ? [address] : undefined,
+    chainId: selectedChain.chainId,
     query: { enabled: !!address },
   })
 
-  // Read USDC allowance
+  // Read USDC allowance on selected chain
   const { data: usdcAllowance, refetch: refetchAllowance } = useReadContract({
-    address: USDC_ADDRESS,
+    address: usdcAddress,
     abi: ERC20_ABI,
     functionName: "allowance",
-    args: address ? [address, EXCHANGE_ADDRESS] : undefined,
+    args: address ? [address, exchangeAddress] : undefined,
+    chainId: selectedChain.chainId,
     query: { enabled: !!address },
   })
 
-  // Read token balance (for sell)
+  // Read token balance on selected chain (for sell)
   const { data: tokenBalance } = useReadContract({
     address: tokenAddress,
     abi: ERC20_ABI,
     functionName: "balanceOf",
     args: address ? [address] : undefined,
+    chainId: selectedChain.chainId,
     query: { enabled: !!address && !!tokenAddress },
   })
 
-  // Read verification status
+  // Read verification status on selected chain
   const { data: isVerified } = useReadContract({
-    address: EXCHANGE_ADDRESS,
+    address: exchangeAddress,
     abi: EXCHANGE_ABI,
     functionName: "verifiedUsers",
     args: address ? [address] : undefined,
+    chainId: selectedChain.chainId,
     query: { enabled: !!address },
   })
 
-  const { sendCallsAsync } = useSendCalls()
+  const { sendCalls } = useSendCalls()
 
   const chartData = useMemo(() => {
     if (liveData.chartData?.length) {
@@ -155,7 +164,6 @@ export function AssetDetailView({ asset }: { asset: AssetData }) {
     }
 
     const usdcAmount = parseUnits(amount.toString(), USDC_DECIMALS)
-    const MAX_UINT256 = BigInt("0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff")
 
     setIsProcessing(true)
     try {
@@ -171,17 +179,17 @@ export function AssetDetailView({ asset }: { asset: AssetData }) {
         const currentAllowance = (usdcAllowance as bigint) ?? BigInt(0)
         if (currentAllowance < usdcAmount) {
           calls.push({
-            to: USDC_ADDRESS,
+            to: usdcAddress,
             data: encodeFunctionData({
               abi: ERC20_ABI,
               functionName: "approve",
-              args: [EXCHANGE_ADDRESS, MAX_UINT256],
+              args: [exchangeAddress, usdcAmount],
             }),
           })
         }
 
         calls.push({
-          to: EXCHANGE_ADDRESS,
+          to: exchangeAddress,
           data: encodeFunctionData({
             abi: EXCHANGE_ABI,
             functionName: "buy",
@@ -191,22 +199,23 @@ export function AssetDetailView({ asset }: { asset: AssetData }) {
 
         setTxStep("trading")
         toast.info(`Buying ${asset.ticker}...`)
-        await sendCallsAsync({ calls })
+        sendCalls({ calls, chainId: selectedChain.chainId })
         toast.success(`Bought ${receiveAmount} ${asset.ticker} for $${payAmount}`)
         await refetchAllowance()
       } else {
         // Sell: always batch approve + sell
+        const tokenAmountToSell = parseUnits(receiveAmount || "0", 18)
         calls.push({
           to: tokenAddress,
           data: encodeFunctionData({
             abi: ERC20_ABI,
             functionName: "approve",
-            args: [EXCHANGE_ADDRESS, MAX_UINT256],
+            args: [exchangeAddress, tokenAmountToSell],
           }),
         })
 
         calls.push({
-          to: EXCHANGE_ADDRESS,
+          to: exchangeAddress,
           data: encodeFunctionData({
             abi: EXCHANGE_ABI,
             functionName: "sell",
@@ -216,7 +225,7 @@ export function AssetDetailView({ asset }: { asset: AssetData }) {
 
         setTxStep("trading")
         toast.info(`Selling ${asset.ticker}...`)
-        await sendCallsAsync({ calls })
+        sendCalls({ calls, chainId: selectedChain.chainId })
         toast.success(`Sold ${receiveAmount} ${asset.ticker} for $${payAmount}`)
       }
 
@@ -457,6 +466,44 @@ export function AssetDetailView({ asset }: { asset: AssetData }) {
             </div>
 
             <div className="p-6 space-y-4">
+              {/* Chain Selector */}
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => setChainDropdownOpen(!chainDropdownOpen)}
+                  className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl bg-[#171717]/60 border border-[#1e1e1e] hover:border-white/10 transition-colors cursor-pointer"
+                >
+                  <div className="flex items-center gap-2.5">
+                    <img src={selectedChain.icon} alt={selectedChain.name} className="w-5 h-5 rounded-full" />
+                    <span className="text-sm font-medium text-[#ededed]">{selectedChain.name}</span>
+                  </div>
+                  <ChevronDown className={cn("w-4 h-4 text-[#737373] transition-transform", chainDropdownOpen && "rotate-180")} />
+                </button>
+                {chainDropdownOpen && (
+                  <div className="absolute z-10 top-full mt-1 w-full rounded-xl bg-[#0c0c0c] border border-[#1e1e1e] overflow-hidden shadow-xl">
+                    {TRADEABLE_CHAINS.map((chain) => (
+                      <button
+                        key={chain.chainId}
+                        type="button"
+                        onClick={() => {
+                          setSelectedChain(chain)
+                          setChainDropdownOpen(false)
+                        }}
+                        className="w-full flex items-center justify-between px-3 py-2.5 hover:bg-[#171717] transition-colors cursor-pointer"
+                      >
+                        <div className="flex items-center gap-2.5">
+                          <img src={chain.icon} alt={chain.name} className="w-5 h-5 rounded-full" />
+                          <span className="text-sm text-[#ededed]">{chain.name}</span>
+                        </div>
+                        {chain.chainId === selectedChain.chainId && (
+                          <Check className="w-4 h-4 text-emerald-400" />
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
               {/* Pay */}
               <div>
                 <p className="text-xs text-[#737373] mb-2">
@@ -489,6 +536,44 @@ export function AssetDetailView({ asset }: { asset: AssetData }) {
                   </div>
                 </div>
               </div>
+
+              {/* Balance + Quick Fill */}
+              {mounted && isConnected && (
+                <div className="space-y-2">
+                  <div className="flex justify-between text-xs px-1">
+                    <span className="text-[#737373]">
+                      {activeTab === "buy" ? "USDC Balance" : `${asset.ticker} Balance`}
+                    </span>
+                    <span className="text-[#ededed] tabular-nums font-medium">
+                      {activeTab === "buy"
+                        ? `$${formattedUsdcBalance}`
+                        : `${formattedTokenBalance} ${asset.ticker}`}
+                    </span>
+                  </div>
+                  <div className="flex gap-2">
+                    {[25, 50, 75, 100].map((pct) => (
+                      <button
+                        key={pct}
+                        type="button"
+                        onClick={() => {
+                          if (activeTab === "buy") {
+                            const bal = usdcBalance ? Number(formatUnits(usdcBalance as bigint, USDC_DECIMALS)) : 0
+                            const val = (bal * pct / 100).toFixed(2)
+                            handlePayChange(val)
+                          } else {
+                            const bal = tokenBalance ? Number(formatUnits(tokenBalance as bigint, 18)) : 0
+                            const val = (bal * pct / 100).toFixed(6)
+                            handleReceiveChange(val)
+                          }
+                        }}
+                        className="flex-1 py-1.5 rounded-lg text-xs font-medium bg-[#171717] border border-[#1e1e1e] text-[#737373] hover:text-[#ededed] hover:border-white/10 transition-colors cursor-pointer"
+                      >
+                        {pct === 100 ? "Max" : `${pct}%`}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               {/* Arrow */}
               <div className="flex justify-center">
@@ -529,22 +614,6 @@ export function AssetDetailView({ asset }: { asset: AssetData }) {
                   </div>
                 </div>
               </div>
-
-              {/* Balance */}
-              {mounted && isConnected && (
-                <div className="px-3 py-2 rounded-lg bg-[#171717]/60 border border-[#1e1e1e]">
-                  <div className="flex justify-between text-xs">
-                    <span className="text-[#737373]">
-                      {activeTab === "buy" ? "USDC Balance" : `${asset.ticker} Balance`}
-                    </span>
-                    <span className="text-[#ededed] tabular-nums font-medium">
-                      {activeTab === "buy"
-                        ? `$${formattedUsdcBalance}`
-                        : `${formattedTokenBalance} ${asset.ticker}`}
-                    </span>
-                  </div>
-                </div>
-              )}
 
               {/* Rate info */}
               <div className="space-y-2 pt-2 text-sm">
@@ -597,7 +666,7 @@ export function AssetDetailView({ asset }: { asset: AssetData }) {
               </button>
 
               <p className="text-[11px] text-[#737373] leading-relaxed text-center">
-                Synthetic asset prices powered by Chainlink oracles. Settlement on Arbitrum Sepolia.
+                Synthetic asset prices powered by Chainlink oracles. Settlement on {selectedChain.name}.
               </p>
             </div>
           </div>
