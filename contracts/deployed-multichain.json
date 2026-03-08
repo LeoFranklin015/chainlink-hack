@@ -1,0 +1,32 @@
+{
+  "baseSepolia": {
+    "network": "baseSepolia",
+    "deployer": "0x79bE9Dd3CfB1542fA04CE3954224d1fa71FFf704",
+    "token": "0x40469e2c7572F24007bEB59C2e413FB60e2cdDa1",
+    "implementation": "0x16F669477dfc0469BC4BAdE2fe49c61Ad8c8259C",
+    "proxyAdmin": "0xF2F978E5C565e409a5aE1Cf1495aF811E7b13ff2",
+    "priceReceiver": "0x1705e9E7456AE90B7fD29bAa9228C71F63CdFeE0",
+    "exchange": "0xBA37b69AA7846E704B055f53456A649aDF113541",
+    "sanctionsList": "0xdC1377f512B3cCD98BeDdD9377346Ea4F31fEd9F",
+    "usdc": "0x036CbD53842c5426634e7929541eC2318f3dCF7e",
+    "globalSupplyCap": "1000",
+    "maxHoldingBps": 500,
+    "testPrice": "$1.00",
+    "deployedAt": "2026-03-08T08:27:06.480Z"
+  },
+  "arbSepolia": {
+    "network": "arbSepolia",
+    "deployer": "0x79bE9Dd3CfB1542fA04CE3954224d1fa71FFf704",
+    "token": "0x9fd74211C9C9585e6159B074AC7cEADEc9751a11",
+    "implementation": "0x2d4e4523B461DC76167EAF4B1b5ed9151C8A922b",
+    "proxyAdmin": "0x3Be7c3Df256E23B43c12dD4e935EbC4c172A9440",
+    "priceReceiver": "0x00CAA614b2CE256266737C16eAd000d8AD56A148",
+    "exchange": "0x803A14FaC343C1C8FeEAd0dfE41442715e21fb3D",
+    "sanctionsList": "0xdC1D55B20430Bc2D923Ba6981b33Af6a2b899a93",
+    "usdc": "0x75faf114eafb1BDbe2F0316DF893fd58CE46AA4d",
+    "globalSupplyCap": "1000",
+    "maxHoldingBps": 500,
+    "testPrice": "$1.00",
+    "deployedAt": "2026-03-08T08:28:15.024Z"
+  }
+}
