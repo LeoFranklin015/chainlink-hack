@@ -129,7 +129,7 @@ export const ProductTeaserCard = (props: ProductTeaserCardProps) => {
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.5 }}
-          className="mt-20 overflow-hidden border-y border-white/[0.06]"
+          className="mt-20 overflow-hidden"
         >
           <div className="relative py-5">
             {/* Gradient fades */}
@@ -143,7 +143,7 @@ export const ProductTeaserCard = (props: ProductTeaserCardProps) => {
                   key={`${stock.ticker}-${i}`}
                   className="flex items-center gap-3 shrink-0"
                 >
-                  <div className="w-6 h-6 rounded-full bg-white/5 border border-white/10 flex items-center justify-center overflow-hidden">
+                  <div className="w-6 h-6 rounded-full bg-white/5 flex items-center justify-center overflow-hidden">
                     <img
                       src={`https://img.logokit.com/ticker/${stock.ticker}?token=pk_frfbe2dd55bc04b3d4d1bc`}
                       alt={stock.ticker}
