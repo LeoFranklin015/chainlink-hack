@@ -87,6 +87,12 @@ export function Navbar() {
           >
             Portfolio
           </Link>
+          <Link
+            href="/verify"
+            className="text-[13px] text-white/70 hover:text-white transition-colors"
+          >
+            Verify
+          </Link>
         </div>
 
         {/* Connect / Account */}
