@@ -113,6 +113,23 @@ function findAssetByAddress(address: string): AssetData | undefined {
   )
 }
 
+async function fetchLivePrices(): Promise<Record<string, number>> {
+  try {
+    const symbols = ASSETS.map((a) => a.ticker).join(",")
+    const res = await fetch(`/api/quotes?symbols=${symbols}`)
+    if (!res.ok) return {}
+    const json = await res.json()
+    const prices: Record<string, number> = {}
+    for (const [symbol, data] of Object.entries(json.quotes ?? {})) {
+      const q = data as { price?: number }
+      if (q.price) prices[symbol] = q.price
+    }
+    return prices
+  } catch {
+    return {}
+  }
+}
+
 export function usePortfolio(): PortfolioData {
   const { address, isConnected } = useAccount()
   const [positions, setPositions] = useState<PortfolioPosition[]>([])
@@ -133,24 +150,25 @@ export function usePortfolio(): PortfolioData {
     setError(null)
 
     try {
-      // Query all 3 chains in parallel
-      const results = await Promise.allSettled(
-        SUPPORTED_CHAIN_IDS.map((chainId) =>
+      // Fetch live prices + subgraph data in parallel
+      const [livePrices, ...results] = await Promise.all([
+        fetchLivePrices(),
+        ...SUPPORTED_CHAIN_IDS.map((chainId) =>
           querySubgraph<{ user: SubgraphUser | null }>(
             chainId,
             PORTFOLIO_QUERY,
             { user: address.toLowerCase() }
-          ).then((data) => ({ chainId, data }))
-        )
-      )
+          ).then((data) => ({ chainId, data })).catch(() => null)
+        ),
+      ])
 
       let allPositions: PortfolioPosition[] = []
       let allTrades: PortfolioTrade[] = []
       let isVerified = false
 
       for (const result of results) {
-        if (result.status !== "fulfilled") continue
-        const { chainId, data } = result.value
+        if (!result) continue
+        const { chainId, data } = result
         if (!data.user) continue
 
         if (data.user.verified) isVerified = true
@@ -161,6 +179,7 @@ export function usePortfolio(): PortfolioData {
             const asset = findAssetByAddress(tokenAddr)
             if (!asset) return null
             const balance = toHuman18(p.balance)
+            const currentPrice = livePrices[asset.ticker] ?? asset.price
             return {
               asset,
               tokenAddress: tokenAddr,
@@ -169,8 +188,8 @@ export function usePortfolio(): PortfolioData {
               totalSold: toHuman18(p.totalSold),
               totalVolumeUSDC: toHuman6(p.totalVolumeUSDC),
               flagged: p.flagged,
-              currentPrice: asset.price,
-              value: balance * asset.price,
+              currentPrice,
+              value: balance * currentPrice,
               chainId,
             }
           })
