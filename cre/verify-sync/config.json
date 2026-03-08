@@ -1,0 +1,14 @@
+{
+  "primaryChain": {
+    "chainSelectorName": "ethereum-testnet-sepolia-base-1",
+    "exchangeAddress": "0xBA37b69AA7846E704B055f53456A649aDF113541",
+    "gasLimit": "500000"
+  },
+  "targetChains": [
+    {
+      "chainSelectorName": "ethereum-testnet-sepolia-arbitrum-1",
+      "exchangeAddress": "0x803A14FaC343C1C8FeEAd0dfE41442715e21fb3D",
+      "gasLimit": "500000"
+    }
+  ]
+}

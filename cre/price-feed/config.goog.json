@@ -1,0 +1,12 @@
+{
+  "schedule": "*/60 * * * * *",
+  "finnhubApiKey": "d5vipc9r01qqiqhvae20d5vipc9r01qqiqhvae2g",
+  "symbol": "GOOG",
+  "priceReceiverAddress": "0xac79de9331D68328f3e1656b2a698889C5EfA1d9",
+  "chains": [
+    { "chainSelectorName": "ethereum-testnet-sepolia", "gasLimit": "500000" },
+    { "chainSelectorName": "ethereum-testnet-sepolia-base-1", "gasLimit": "500000" },
+    { "chainSelectorName": "ethereum-testnet-sepolia-arbitrum-1", "gasLimit": "500000" },
+    { "chainSelectorName": "ethereum-testnet-sepolia-worldchain-1", "gasLimit": "500000" }
+  ]
+}

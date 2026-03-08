@@ -1,0 +1,12 @@
+{
+  "schedule": "*/60 * * * * *",
+  "finnhubApiKey": "d5vipc9r01qqiqhvae20d5vipc9r01qqiqhvae2g",
+  "symbol": "AAPL",
+  "priceReceiverAddress": "0x25572a2D382c54B5F477D94F509BEF36EDecB1A3",
+  "chains": [
+    { "chainSelectorName": "ethereum-testnet-sepolia", "gasLimit": "500000" },
+    { "chainSelectorName": "ethereum-testnet-sepolia-base-1", "gasLimit": "500000" },
+    { "chainSelectorName": "ethereum-testnet-sepolia-arbitrum-1", "gasLimit": "500000" },
+    { "chainSelectorName": "ethereum-testnet-sepolia-worldchain-1", "gasLimit": "500000" }
+  ]
+}

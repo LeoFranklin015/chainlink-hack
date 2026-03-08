@@ -1,0 +1,25 @@
+# ==========================================================================
+# CRE WORKFLOW SETTINGS FILE
+# ==========================================================================
+# XStocks Price Feed — one workflow instance per symbol
+# Each symbol has its own config file: config.json, config.nvda.json, etc.
+# CRE has a 10 chain-write limit per execution, so each workflow handles
+# 1 symbol x 4 chains = 4 writes.
+
+# ==========================================================================
+staging-settings:
+  user-workflow:
+    workflow-name: "xstocks-price-feed-staging"
+  workflow-artifacts:
+    workflow-path: "./main.ts"
+    config-path: "./config.json"
+    secrets-path: ""
+
+# ==========================================================================
+production-settings:
+  user-workflow:
+    workflow-name: "xstocks-price-feed-production"
+  workflow-artifacts:
+    workflow-path: "./main.ts"
+    config-path: "./config.json"
+    secrets-path: ""

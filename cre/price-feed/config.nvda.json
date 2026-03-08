@@ -1,0 +1,12 @@
+{
+  "schedule": "*/60 * * * * *",
+  "finnhubApiKey": "d5vipc9r01qqiqhvae20d5vipc9r01qqiqhvae2g",
+  "symbol": "NVDA",
+  "priceReceiverAddress": "0xdfb04413da63396E3AfCC1C496B0b46652ab7202",
+  "chains": [
+    { "chainSelectorName": "ethereum-testnet-sepolia", "gasLimit": "500000" },
+    { "chainSelectorName": "ethereum-testnet-sepolia-base-1", "gasLimit": "500000" },
+    { "chainSelectorName": "ethereum-testnet-sepolia-arbitrum-1", "gasLimit": "500000" },
+    { "chainSelectorName": "ethereum-testnet-sepolia-worldchain-1", "gasLimit": "500000" }
+  ]
+}
