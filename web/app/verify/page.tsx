@@ -4,7 +4,7 @@ import { useState, useCallback } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import {
   IDKitRequestWidget,
-  orbLegacy,
+  device,
   type RpContext,
 } from "@worldcoin/idkit"
 import {
@@ -212,7 +212,7 @@ export default function VerifyPage() {
                   )}
 
                   <p className="text-[10px] text-[#737373] text-center mt-4 leading-relaxed">
-                    Powered by World ID v4 &middot; Orb-level verification
+                    Powered by World ID v4 &middot; Device-level verification
                   </p>
                 </motion.div>
               )}
@@ -251,7 +251,7 @@ export default function VerifyPage() {
                       <ShieldCheck className="w-8 h-8 text-emerald-400" />
                     </motion.div>
                     <h2 className="text-xl font-bold text-[#ededed] mb-1">Verified Human</h2>
-                    <p className="text-xs text-[#737373]">World ID Orb verification successful</p>
+                    <p className="text-xs text-[#737373]">World ID Device verification successful</p>
                   </div>
 
                   {/* Nullifier */}
@@ -281,7 +281,7 @@ export default function VerifyPage() {
                     {[
                       ["Action", action],
                       ["Protocol", `v${state.protocolVersion}`],
-                      ["Verification Level", "Orb"],
+                      ["Verification Level", "Device"],
                       ["Status", "Verified"],
                     ].map(([label, val]) => (
                       <div key={label} className="flex justify-between text-sm">
@@ -347,8 +347,7 @@ export default function VerifyPage() {
               app_id={appId as `app_${string}`}
               action={action}
               rp_context={rpContext}
-              allow_legacy_proofs={true}
-              preset={orbLegacy()}
+              preset={device()}
               handleVerify={handleVerify}
               onSuccess={onSuccess}
             />
