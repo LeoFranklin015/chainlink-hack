@@ -14,36 +14,21 @@ export type AssetWithQuote = AssetData & {
   low24h?: number
 }
 
-type YahooQuote = {
-  symbol: string
-  regularMarketPrice: number
-  regularMarketChange: number
-  regularMarketChangePercent: number
-  regularMarketDayHigh: number
-  regularMarketDayLow: number
+type QuoteData = {
+  price: number
+  change: number
+  changePercent: number
+  high: number
+  low: number
 }
 
-// Fetch real quotes from Yahoo Finance
-async function fetchYahooQuotes(symbols: string[]): Promise<Record<string, YahooQuote>> {
+// Fetch real quotes via our API route (proxies Yahoo Finance, with 24h→48h→72h fallback)
+async function fetchQuotes(symbols: string[]): Promise<Record<string, QuoteData>> {
   try {
-    const url = `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${symbols.join(",")}`
-    const res = await fetch(url, {
-      headers: { "User-Agent": "Mozilla/5.0" },
-    })
+    const res = await fetch(`/api/quotes?symbols=${symbols.join(",")}`)
     if (!res.ok) return {}
     const json = await res.json()
-    const result: Record<string, YahooQuote> = {}
-    for (const q of json?.quoteResponse?.result ?? []) {
-      result[q.symbol] = {
-        symbol: q.symbol,
-        regularMarketPrice: q.regularMarketPrice,
-        regularMarketChange: q.regularMarketChange,
-        regularMarketChangePercent: q.regularMarketChangePercent,
-        regularMarketDayHigh: q.regularMarketDayHigh,
-        regularMarketDayLow: q.regularMarketDayLow,
-      }
-    }
-    return result
+    return json.quotes ?? {}
   } catch {
     return {}
   }
@@ -66,13 +51,13 @@ function generateSparkline(basePrice: number, change: number, ticker: string, po
 export function useStockQuotes() {
   const symbols = useMemo(() => ASSETS.map((a) => a.ticker), [])
   const { prices, connected } = useFinnhubPrices(symbols)
-  const [yahooQuotes, setYahooQuotes] = useState<Record<string, YahooQuote>>({})
+  const [quotes, setQuotes] = useState<Record<string, QuoteData>>({})
   const [loading, setLoading] = useState(true)
 
-  // Fetch Yahoo Finance quotes on mount
+  // Fetch real quote data on mount
   useEffect(() => {
-    fetchYahooQuotes(symbols).then((quotes) => {
-      setYahooQuotes(quotes)
+    fetchQuotes(symbols).then((q) => {
+      setQuotes(q)
       setLoading(false)
     })
   }, [symbols])
@@ -95,27 +80,27 @@ export function useStockQuotes() {
   const assets: AssetWithQuote[] = useMemo(() => {
     return ASSETS.map((asset) => {
       const livePrice = prices[asset.ticker]
-      const yahoo = yahooQuotes[asset.ticker]
+      const quote = quotes[asset.ticker]
 
       // Priority: live WS price > Yahoo quote > static price
-      const currentPrice = livePrice?.price ?? yahoo?.regularMarketPrice ?? asset.price
+      const currentPrice = livePrice?.price ?? quote?.price ?? asset.price
       const isLive = !!livePrice
 
       if (isLive) {
         updateHistory(asset.ticker, currentPrice)
       }
 
-      // Use real Yahoo change data, or compute from live price
-      const change24h = yahoo?.regularMarketChange ?? (currentPrice - asset.price)
-      const change24hPercent = yahoo?.regularMarketChangePercent ?? (asset.price ? (change24h / asset.price) * 100 : 0)
+      // Use real Yahoo change data, or compute from live vs static price
+      const change24h = quote?.change ?? (currentPrice - asset.price)
+      const change24hPercent = quote?.changePercent ?? (asset.price ? ((currentPrice - asset.price) / asset.price) * 100 : 0)
 
       const sparklineData =
         historyRef.current[asset.ticker]?.length > 2
           ? historyRef.current[asset.ticker]
           : generateSparkline(currentPrice, change24h, asset.ticker)
 
-      const high24h = yahoo?.regularMarketDayHigh ?? Math.max(...sparklineData)
-      const low24h = yahoo?.regularMarketDayLow ?? Math.min(...sparklineData)
+      const high24h = quote?.high ?? Math.max(...sparklineData)
+      const low24h = quote?.low ?? Math.min(...sparklineData)
 
       return {
         ...asset,
@@ -128,14 +113,14 @@ export function useStockQuotes() {
         low24h,
       }
     })
-  }, [prices, yahooQuotes, updateHistory])
+  }, [prices, quotes, updateHistory])
 
   return {
     assets,
     loading,
     error: connected ? null : (!process.env.NEXT_PUBLIC_FINNHUB_API_KEY ? "No Finnhub API key — showing static prices." : null),
     refetch: () => {
-      fetchYahooQuotes(symbols).then(setYahooQuotes)
+      fetchQuotes(symbols).then(setQuotes)
     },
   }
 }
