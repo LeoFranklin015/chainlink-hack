@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useMemo } from "react"
 import Link from "next/link"
 import { motion } from "framer-motion"
 import {
@@ -15,13 +15,15 @@ import {
   Wallet,
   Clock,
   ChevronRight,
+  ChevronDown,
   Loader2,
   AlertCircle,
 } from "lucide-react"
 import { Navbar } from "@/components/Navbar"
 import { getStockLogoUrl, cn } from "@/lib/utils"
-import { usePortfolio } from "@/hooks/usePortfolio"
+import { usePortfolio, type PortfolioPosition } from "@/hooks/usePortfolio"
 import { useUsdcBalances } from "@/hooks/useUsdcBalances"
+import { CHAIN_CONTRACTS } from "@/lib/contracts"
 
 const ALLOC_COLORS = [
   "#22c55e", "#3b82f6", "#f59e0b", "#8b5cf6", "#ec4899", "#06b6d4",
@@ -42,6 +44,27 @@ export default function PortfolioPage() {
   const { positions, trades, totalValue, totalVolumeUSDC, loading, error } = usePortfolio()
   const { balances: usdcBalances, totalUsdc } = useUsdcBalances()
   const [showUsdcBreakdown, setShowUsdcBreakdown] = useState(false)
+  const [expandedAsset, setExpandedAsset] = useState<string | null>(null)
+
+  // Group positions by ticker for multi-chain tree view
+  const groupedPositions = useMemo(() => {
+    const groups: Record<string, { positions: PortfolioPosition[]; totalBalance: number; totalValue: number; totalVolume: number; currentPrice: number; asset: PortfolioPosition["asset"] }> = {}
+    for (const p of positions) {
+      const key = p.asset.ticker
+      if (!groups[key]) {
+        groups[key] = { positions: [], totalBalance: 0, totalValue: 0, totalVolume: 0, currentPrice: p.currentPrice, asset: p.asset }
+      }
+      groups[key].positions.push(p)
+      groups[key].totalBalance += p.balance
+      groups[key].totalValue += p.value
+      groups[key].totalVolume += p.totalVolumeUSDC
+    }
+    return Object.values(groups).sort((a, b) => b.totalValue - a.totalValue)
+  }, [positions])
+
+  function getChainInfo(chainId: number) {
+    return CHAIN_CONTRACTS.find((c) => c.chainId === chainId)
+  }
 
   const allocData = positions.map((p, i) => ({
     name: p.asset.ticker,
@@ -207,64 +230,89 @@ export default function PortfolioPage() {
                           <div className="col-span-2 text-right">Volume</div>
                         </div>
 
-                        {positions.map((p, i) => (
-                          <Link
-                            key={p.tokenAddress}
-                            href={`/markets/assets/${p.asset.ticker}`}
-                          >
-                            <motion.div
-                              initial={{ opacity: 0, x: -8 }}
-                              animate={{ opacity: 1, x: 0 }}
-                              transition={{ duration: 0.35, delay: 0.08 * i }}
-                              className="grid grid-cols-12 gap-4 px-6 py-4 items-center hover:bg-[#171717]/50 transition-colors group cursor-pointer"
-                            >
-                              {/* Asset */}
-                              <div className="col-span-4 flex items-center gap-3 min-w-0">
-                                <div className="w-9 h-9 rounded-lg bg-[#171717] overflow-hidden flex-shrink-0">
-                                  <img
-                                    src={getStockLogoUrl(p.asset.ticker)}
-                                    alt={p.asset.ticker}
-                                    className="w-9 h-9 object-cover"
-                                  />
+                        {groupedPositions.map((group, i) => {
+                          const isExpanded = expandedAsset === group.asset.ticker
+                          return (
+                            <div key={group.asset.ticker}>
+                              <Link href={`/markets/assets/${group.asset.ticker}`}>
+                                <motion.div
+                                  initial={{ opacity: 0, x: -8 }}
+                                  animate={{ opacity: 1, x: 0 }}
+                                  transition={{ duration: 0.35, delay: 0.08 * i }}
+                                  className="grid grid-cols-12 gap-4 px-6 py-4 items-center hover:bg-[#171717]/50 transition-colors cursor-pointer"
+                                >
+                                  <div className="col-span-4 flex items-center gap-3 min-w-0">
+                                    <div className="w-9 h-9 rounded-lg bg-[#171717] overflow-hidden flex-shrink-0">
+                                      <img src={getStockLogoUrl(group.asset.ticker)} alt={group.asset.ticker} className="w-9 h-9 object-cover" />
+                                    </div>
+                                    <div className="min-w-0">
+                                      <p className="text-sm font-semibold text-[#ededed] truncate">{group.asset.ticker}</p>
+                                      <p className="text-xs text-[#737373] truncate">{group.asset.name}</p>
+                                    </div>
+                                    <button
+                                      type="button"
+                                      onClick={(e) => {
+                                        e.preventDefault()
+                                        e.stopPropagation()
+                                        setExpandedAsset(isExpanded ? null : group.asset.ticker)
+                                      }}
+                                      className="ml-auto flex-shrink-0 p-1 rounded-md hover:bg-[#1e1e1e] transition-colors cursor-pointer"
+                                    >
+                                      <ChevronDown className={cn("w-4 h-4 text-[#737373] transition-transform duration-200", isExpanded && "rotate-180")} />
+                                    </button>
+                                  </div>
+                                <div className="col-span-2 text-right">
+                                  <p className="text-sm text-[#ededed] tabular-nums font-medium">${group.currentPrice.toFixed(2)}</p>
                                 </div>
-                                <div className="min-w-0">
-                                  <p className="text-sm font-semibold text-[#ededed] truncate">{p.asset.ticker}</p>
-                                  <p className="text-xs text-[#737373] truncate">{p.asset.name}</p>
+                                <div className="col-span-2 text-right">
+                                  <p className="text-sm text-[#ededed] tabular-nums">{group.totalBalance.toFixed(group.totalBalance % 1 === 0 ? 0 : 4)}</p>
+                                  <p className="text-[10px] text-[#737373]">tokens</p>
                                 </div>
-                                <ChevronRight className="w-4 h-4 text-[#737373] opacity-0 group-hover:opacity-100 transition-opacity ml-auto flex-shrink-0" />
-                              </div>
+                                <div className="col-span-2 text-right">
+                                  <p className="text-sm text-[#ededed] tabular-nums font-medium">${group.totalValue.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+                                </div>
+                                <div className="col-span-2 text-right">
+                                  <p className="text-sm text-[#737373] tabular-nums">${group.totalVolume.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+                                </div>
+                                </motion.div>
+                              </Link>
 
-                              {/* Price */}
-                              <div className="col-span-2 text-right">
-                                <p className="text-sm text-[#ededed] tabular-nums font-medium">
-                                  ${p.currentPrice.toFixed(2)}
-                                </p>
-                              </div>
-
-                              {/* Holdings */}
-                              <div className="col-span-2 text-right">
-                                <p className="text-sm text-[#ededed] tabular-nums">
-                                  {p.balance.toFixed(p.balance % 1 === 0 ? 0 : 4)}
-                                </p>
-                                <p className="text-[10px] text-[#737373]">tokens</p>
-                              </div>
-
-                              {/* Value */}
-                              <div className="col-span-2 text-right">
-                                <p className="text-sm text-[#ededed] tabular-nums font-medium">
-                                  ${p.value.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                                </p>
-                              </div>
-
-                              {/* Volume */}
-                              <div className="col-span-2 text-right">
-                                <p className="text-sm text-[#737373] tabular-nums">
-                                  ${p.totalVolumeUSDC.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                                </p>
-                              </div>
-                            </motion.div>
-                          </Link>
-                        ))}
+                              {/* Per-chain breakdown */}
+                              {isExpanded && (
+                                <div className="bg-[#0a0a0a] border-t border-[#1e1e1e]/50">
+                                  {group.positions.map((p) => {
+                                    const chain = getChainInfo(p.chainId)
+                                    return (
+                                      <Link
+                                        key={`${p.chainId}-${p.tokenAddress}`}
+                                        href={`/markets/assets/${group.asset.ticker}`}
+                                      >
+                                        <div className="grid grid-cols-12 gap-4 px-6 py-2.5 items-center text-xs hover:bg-[#171717]/30 transition-colors">
+                                          <div className="col-span-4 flex items-center gap-2.5 pl-12">
+                                            {chain && <img src={chain.icon} alt={chain.name} className="w-4 h-4 rounded-full" />}
+                                            <span className="text-[#ededed] font-medium">{chain?.name ?? `Chain ${p.chainId}`}</span>
+                                          </div>
+                                          <div className="col-span-2 text-right">
+                                            <span className="text-[#737373] tabular-nums">${p.currentPrice.toFixed(2)}</span>
+                                          </div>
+                                          <div className="col-span-2 text-right">
+                                            <span className="text-[#ededed] tabular-nums">{p.balance.toFixed(p.balance % 1 === 0 ? 0 : 4)}</span>
+                                          </div>
+                                          <div className="col-span-2 text-right">
+                                            <span className="text-[#ededed] tabular-nums">${p.value.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                          </div>
+                                          <div className="col-span-2 text-right">
+                                            <span className="text-[#737373] tabular-nums">${p.totalVolumeUSDC.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                          </div>
+                                        </div>
+                                      </Link>
+                                    )
+                                  })}
+                                </div>
+                              )}
+                            </div>
+                          )
+                        })}
                       </div>
                     ) : (
                       <div className="divide-y divide-[#1e1e1e]">
