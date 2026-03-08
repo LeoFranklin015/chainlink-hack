@@ -1,0 +1,41 @@
+specVersion: 1.0.0
+indexerHints:
+  prune: auto
+schema:
+  file: ./schema.graphql
+dataSources:
+  - kind: ethereum
+    name: SynthStocksExchange
+    network: base-sepolia
+    source:
+      address: "0xBA37b69AA7846E704B055f53456A649aDF113541"
+      abi: SynthStocksExchange
+      startBlock: 22998000
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - Holder
+        - Trade
+        - UserVerification
+        - HoldingLimitEvent
+        - CrossChainSupplyUpdate
+        - ExchangeStats
+      abis:
+        - name: SynthStocksExchange
+          file: ./abis/SynthStocksExchange.json
+      eventHandlers:
+        - event: Buy(indexed address,uint256,uint256)
+          handler: handleBuy
+        - event: Sell(indexed address,uint256,uint256)
+          handler: handleSell
+        - event: UserVerified(indexed address,uint256)
+          handler: handleUserVerified
+        - event: HolderFlagged(indexed address,uint256,uint256)
+          handler: handleHolderFlagged
+        - event: HolderUnflagged(indexed address)
+          handler: handleHolderUnflagged
+        - event: CrossChainSupplyUpdated(uint256,uint256)
+          handler: handleCrossChainSupplyUpdated
+      file: ./src/exchange.ts

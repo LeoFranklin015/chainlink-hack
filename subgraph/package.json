@@ -1,0 +1,18 @@
+{
+  "name": "synthstocks-subgraph",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "codegen": "graph codegen",
+    "build:base-sepolia": "graph build --network base-sepolia",
+    "build:arbitrum-sepolia": "graph build --network arbitrum-sepolia",
+    "deploy:base-sepolia": "graph deploy synth-token-base --version-label v0.0.1 --network base-sepolia --node https://api.studio.thegraph.com/deploy/",
+    "deploy:arbitrum-sepolia": "graph deploy synthstocks-arbitrum-sepolia --version-label v0.0.1 --network arbitrum-sepolia --node https://api.studio.thegraph.com/deploy/",
+    "build:avalanche-fuji": "graph build --network avalanche-fuji",
+    "deploy:avalanche-fuji": "graph deploy synthstocks-avalanche-fuji --version-label v0.0.1 --network avalanche-fuji --node https://api.studio.thegraph.com/deploy/"
+  },
+  "dependencies": {
+    "@graphprotocol/graph-cli": "^0.93.2",
+    "@graphprotocol/graph-ts": "^0.35.1"
+  }
+}

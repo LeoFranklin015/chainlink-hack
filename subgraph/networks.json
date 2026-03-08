@@ -1,0 +1,20 @@
+{
+  "base-sepolia": {
+    "SynthStocksExchange": {
+      "address": "0xBA37b69AA7846E704B055f53456A649aDF113541",
+      "startBlock": 22998000
+    }
+  },
+  "arbitrum-sepolia": {
+    "SynthStocksExchange": {
+      "address": "0x803A14FaC343C1C8FeEAd0dfE41442715e21fb3D",
+      "startBlock": 120000000
+    }
+  },
+  "avalanche-fuji": {
+    "SynthStocksExchange": {
+      "address": "0xBA37b69AA7846E704B055f53456A649aDF113541",
+      "startBlock": 0
+    }
+  }
+}

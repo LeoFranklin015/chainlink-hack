@@ -1,0 +1,65 @@
+type Holder @entity {
+  id: Bytes! # address
+  balance: BigInt!
+  totalBought: BigInt!
+  totalSold: BigInt!
+  totalVolumeUSDC: BigInt!
+  verified: Boolean!
+  flagged: Boolean!
+  trades: [Trade!]! @derivedFrom(field: "holder")
+}
+
+enum TradeType {
+  BUY
+  SELL
+}
+
+type Trade @entity(immutable: true) {
+  id: Bytes! # tx hash + log index
+  type: TradeType!
+  holder: Holder!
+  usdcAmount: BigInt!
+  tokenAmount: BigInt!
+  blockNumber: BigInt!
+  timestamp: BigInt!
+  transactionHash: Bytes!
+}
+
+type UserVerification @entity(immutable: true) {
+  id: Bytes! # tx hash + log index
+  user: Bytes!
+  nullifierHash: BigInt!
+  blockNumber: BigInt!
+  timestamp: BigInt!
+  transactionHash: Bytes!
+}
+
+type HoldingLimitEvent @entity(immutable: true) {
+  id: Bytes! # tx hash + log index
+  holder: Bytes!
+  flagged: Boolean!
+  balance: BigInt # only set on flag
+  totalSupply: BigInt # only set on flag
+  blockNumber: BigInt!
+  timestamp: BigInt!
+  transactionHash: Bytes!
+}
+
+type CrossChainSupplyUpdate @entity(immutable: true) {
+  id: Bytes! # tx hash + log index
+  crossChainSupply: BigInt!
+  localSupply: BigInt!
+  blockNumber: BigInt!
+  timestamp: BigInt!
+  transactionHash: Bytes!
+}
+
+type ExchangeStats @entity {
+  id: String! # "stats"
+  totalTrades: BigInt!
+  totalVolumeUSDC: BigInt!
+  totalBought: BigInt!
+  totalSold: BigInt!
+  holderCount: BigInt!
+  verifiedUserCount: BigInt!
+}
